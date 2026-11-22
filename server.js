@@ -33,6 +33,8 @@ const io = new Server(server, { pingInterval: 20000, pingTimeout: 20000 });
 app.use(express.static(path.join(__dirname, "public")));
 app.get("/health", (_req, res) => res.send("ok"));
 // Public rooms anyone can browse and join. Private rooms are reachable only by code or link.
+app.get("/api/packs", (_req, res) => res.json(WORDS.CATALOG));
+
 app.get("/api/rooms", (_req, res) => {
   res.set("Cache-Control", "no-store");
   res.json(publicRooms().slice(0, 50).map((r) => {
@@ -77,7 +79,27 @@ const shuffle = (a) => {
   }
   return a;
 };
-const cleanName = (n) => String(n || "").replace(/[\u0000-\u001f<>]/g, "").replace(/\s+/g, " ").trim().slice(0, 18);
+const NAME_MAX = 25;
+// Avatars are indexes into the picture set the page draws (public/index.html AVATARS).
+const AVATAR_COUNT = 24;
+const okAvatar = (a) => Number.isInteger(a) && a >= 0 && a < AVATAR_COUNT;
+function freeAvatar(room) {
+  const used = new Set([...room.players.values()].map((x) => x.avatar));
+  const free = [...Array(AVATAR_COUNT).keys()].filter((i) => !used.has(i));
+  const pool = free.length ? free : [...Array(AVATAR_COUNT).keys()];
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+const cleanName = (n) => String(n || "").replace(/[\u0000-\u001f<>]/g, "").replace(/\s+/g, " ").trim().slice(0, NAME_MAX);
+
+// The room owner's choices: undercover count, Mr. White and word packs (Basic is always on).
+function applySettings(room, s) {
+  if (s.undercovers === "auto" || [1, 2, 3, 4].includes(s.undercovers)) room.settings.undercovers = s.undercovers;
+  if (typeof s.mrWhite === "boolean") room.settings.mrWhite = s.mrWhite;
+  if (Array.isArray(s.packs)) {
+    const valid = s.packs.filter((id) => typeof id === "string" && WORDS.PACKS[id]);
+    room.settings.packs = ["basic", ...new Set(valid.filter((id) => id !== "basic"))];
+  }
+}
 
 function makeRoom(ownerId) {
   return {
@@ -373,7 +395,7 @@ function scheduleDrop(room, p) {
 function view(room, pid) {
   const g = room.game;
   const players = sortedPlayers(room).map((p) => ({
-    id: p.id, name: p.name, named: !!(p.named || p.bot), connected: p.connected, score: p.score, ready: p.ready, bot: !!p.bot,
+    id: p.id, name: p.name, avatar: p.avatar ?? 0, named: !!(p.named || p.bot), connected: p.connected, score: p.score, ready: p.ready, bot: !!p.bot,
     inGame: !!(g && p.id in g.roles), alive: !!(g && g.alive.includes(p.id)),
   }));
   const here = players.filter((p) => p.connected).length;
@@ -486,41 +508,42 @@ io.on("connection", (socket) => {
   const nameTaken = (room, n, except) => [...room.players.values()].some((x) => x.id !== except && x.name.toLowerCase() === n.toLowerCase());
   function freeName(room, base) {
     if (!nameTaken(room, base)) return base;
-    let k = 2; while (nameTaken(room, `${base.slice(0, 15)} ${k}`)) k++;
-    return `${base.slice(0, 15)} ${k}`;
+    let k = 2; while (nameTaken(room, `${base.slice(0, NAME_MAX - 3)} ${k}`)) k++;
+    return `${base.slice(0, NAME_MAX - 3)} ${k}`;
   }
-  function seat(room, token, rawName) {
+  function seat(room, token, rawName, rawAvatar) {
     const wanted = cleanName(rawName);
     let name = wanted ? freeName(room, wanted) : null;
     if (!name) { let k = room.players.size + 1; while (nameTaken(room, "Player " + k)) k++; name = "Player " + k; }
-    const p = { id: token, name, named: !!wanted, connected: true, sockets: new Set(), score: 0, joinedAt: Date.now(), ready: false, dropTimer: null };
+    const p = { id: token, name, avatar: okAvatar(rawAvatar) ? rawAvatar : freeAvatar(room), named: !!wanted, connected: true, sockets: new Set(), score: 0, joinedAt: Date.now(), ready: false, dropTimer: null };
     room.players.set(token, p);
     return p;
   }
 
   // Public or private is chosen when the room is created and stays that way.
-  socket.on("create", ({ name, token, visibility } = {}) => {
+  socket.on("create", ({ name, avatar, token, visibility, settings } = {}) => {
     if (!token || typeof token !== "string" || token.length > 80) return fail("Refresh the page and try again.");
     const room = makeRoom(token);
     room.settings.visibility = visibility === "public" ? "public" : "private";
+    if (settings && typeof settings === "object") applySettings(room, settings);
     rooms.set(room.code, room);
-    attach(room, seat(room, token, name));
+    attach(room, seat(room, token, name, avatar));
   });
 
-  function joinRoom(room, name, token) {
+  function joinRoom(room, name, token, avatar) {
     const back = room.players.get(token);
     if (back) return attach(room, back); // reconnect: same seat, same word
     if (room.players.size >= MAX_PLAYERS) return fail("This room is full (16 players).");
-    attach(room, seat(room, token, name));
+    attach(room, seat(room, token, name, avatar));
   }
   const badToken = (t) => !t || typeof t !== "string" || t.length > 80;
 
-  socket.on("join", ({ code, name, token } = {}) => {
+  socket.on("join", ({ code, name, avatar, token } = {}) => {
     code = String(code || "").toUpperCase().trim();
     const room = rooms.get(code);
     if (!room) return fail(`No room called ${code || "that"}. Check the code and try again.`);
     if (badToken(token)) return fail("Refresh the page and try again.");
-    joinRoom(room, name, token);
+    joinRoom(room, name, token, avatar);
   });
 
   // Quick join: the best waiting public room, or a fresh public room if there is none.
@@ -535,18 +558,24 @@ io.on("connection", (socket) => {
   });
 
   // Pick or change your name. Allowed between games (and while watching), not mid-game.
-  socket.on("rename", (raw, ack) => {
+  // Takes a plain name, or { name, avatar }.
+  socket.on("rename", (arg, ack) => {
     const reply = typeof ack === "function" ? ack : () => {};
+    const raw = arg && typeof arg === "object" ? arg.name : arg;
+    const avatar = arg && typeof arg === "object" ? arg.avatar : undefined;
     const { room, p } = ctx();
     if (!room || !p) return reply({ error: "You're not in a room." });
     if (room.game && !inLobby(room) && p.id in room.game.roles) return reply({ error: "You can change your name after this game." });
+    const typed = String(raw || "").replace(/\s+/g, " ").trim();
+    if (typed.length > NAME_MAX) return reply({ error: `Names can be up to ${NAME_MAX} characters.` });
     const name = cleanName(raw);
     if (!name) return reply({ error: "Type a name first." });
     if (nameTaken(room, name, p.id)) return reply({ error: `Someone here is already called ${name}. Add an initial?` });
     p.name = name;
     p.named = true;
+    if (okAvatar(avatar)) p.avatar = avatar;
     for (const m of room.chat) if (m.id === p.id) m.name = name;
-    reply({ ok: true, name });
+    reply({ ok: true, name, avatar: p.avatar });
     broadcast(room);
   });
 
@@ -562,12 +591,7 @@ io.on("connection", (socket) => {
   socket.on("settings", (s = {}) => {
     const { room, p } = ctx();
     if (!room || room.ownerId !== p?.id || !inLobby(room)) return;
-    if (s.undercovers === "auto" || [1, 2, 3, 4].includes(s.undercovers)) room.settings.undercovers = s.undercovers;
-    if (typeof s.mrWhite === "boolean") room.settings.mrWhite = s.mrWhite;
-    if (Array.isArray(s.packs)) {
-      const valid = s.packs.filter((id) => typeof id === "string" && WORDS.PACKS[id]);
-      room.settings.packs = ["basic", ...new Set(valid.filter((id) => id !== "basic"))]; // Basic is always on
-    }
+    applySettings(room, s);
     const gameplay = "undercovers" in s || "mrWhite" in s || "packs" in s;
     // A gameplay change resets Ready so nobody starts a game they didn't agree to (AI players stay ready).
     if (gameplay) for (const x of room.players.values()) x.ready = !!x.bot;
@@ -581,7 +605,7 @@ io.on("connection", (socket) => {
     if (room.players.size >= MAX_PLAYERS) return fail("This room is full (16 players).");
     const id = "bot-" + Math.random().toString(36).slice(2, 10);
     const name = Bots.botName([...room.players.values()].map((x) => x.name));
-    room.players.set(id, { id, name, bot: true, connected: true, sockets: new Set(), score: 0, joinedAt: Date.now(), ready: true, dropTimer: null });
+    room.players.set(id, { id, name, avatar: freeAvatar(room), bot: true, connected: true, sockets: new Set(), score: 0, joinedAt: Date.now(), ready: true, dropTimer: null });
     checkAutoStart(room);
     broadcast(room);
   });
@@ -634,6 +658,18 @@ io.on("connection", (socket) => {
     const g = room?.game;
     if (!g || g.phase !== "vote" || !g.alive.includes(p?.id)) return;
     if (!castVote(room, p.id, target)) fail("You can't vote for that player.");
+  });
+
+  // Emoji reactions float up on everyone's screen. Nothing is stored; a short cooldown stops spamming.
+  const REACTIONS = ["😂", "🤔", "😮", "👀", "🔥", "👏"];
+  socket.on("react", (emoji) => {
+    const { room, p } = ctx();
+    if (!room || !p || !REACTIONS.includes(emoji)) return;
+    const now = Date.now();
+    if (now - (p.lastReact || 0) < 350) return;
+    p.lastReact = now;
+    room.touched = now;
+    io.to(room.code).emit("reaction", { id: p.id, name: p.name, emoji });
   });
 
   // Tap your vote again to take it back (allowed until the countdown ends).
