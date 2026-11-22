@@ -5,6 +5,7 @@ const http = require("http");
 const express = require("express");
 const { Server } = require("socket.io");
 const QRCode = require("qrcode");
+const crypto = require("crypto");
 const WORDS = require("./words");
 const rules = require("./rules");
 const Bots = require("./bots");
@@ -19,6 +20,9 @@ const VOTE_LAST_CALL = 5; // once everyone has voted, seconds left to change you
 const RESULT_SECS = 8; // seconds the round result stays up before the next round
 const WHITE_GUESS_SECS = 30;
 const LOBBY_DROP_SECS = 60; // offline players are removed from the lobby after this
+const HOUSE_WAIT = 180; // house rooms: a rolling 3-minute clock, even while empty
+const PRIVATE_WAIT = Number(process.env.PRIVATE_WAIT || 30); // private rooms: seconds until the start once enough players are in
+const PUBLIC_WAIT = 120; // public rooms: seconds until an automatic start once enough players are in
 const CLUE_SECS = 45; // fixed for everyone — not a room setting
 const VOTE_SECS = 30;
 const CHAT_KEEP = 80; // messages kept per room
@@ -31,7 +35,55 @@ const server = http.createServer(app);
 const io = new Server(server, { pingInterval: 20000, pingTimeout: 20000 });
 
 app.use(express.static(path.join(__dirname, "public")));
+// Short invite links: /r/ABCD opens the game and joins room ABCD.
+app.get("/r/:code", (_req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 app.get("/health", (_req, res) => res.send("ok"));
+/* ---------- contact form ---------- */
+// "Contact us" messages are emailed to the site owner; senders never see the address.
+// Set CONTACT_TO (where messages go) and RESEND_API_KEY (from resend.com) on the host.
+// Without them, messages are kept in the server log so nothing is lost while setting up.
+const contactHits = new Map(); // ip -> [timestamps]
+app.post("/api/contact", express.json({ limit: "16kb" }), async (req, res) => {
+  const ip = String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").split(",")[0].trim();
+  const now = Date.now(), recent = (contactHits.get(ip) || []).filter((t) => now - t < 3600e3);
+  if (recent.length >= 5) return res.status(429).json({ error: "Too many messages. Please try again later." });
+  const message = String(req.body?.message || "").trim().slice(0, 4000);
+  const from = String(req.body?.email || "").trim().slice(0, 200);
+  const name = String(req.body?.name || "").trim().slice(0, 100);
+  if (message.length < 5) return res.status(400).json({ error: "Please write a short message." });
+  if (from && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(from)) return res.status(400).json({ error: "That email address doesn't look right." });
+  recent.push(now); contactHits.set(ip, recent);
+  const text = `New message from the Undercover contact form\n\nName: ${name || "—"}\nReply to: ${from || "—"}\n\n${message}`;
+  console.log("[contact]", text.replace(/\n+/g, " | "));
+  if (process.env.RESEND_API_KEY && process.env.CONTACT_TO) {
+    try {
+      const r = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ from: process.env.CONTACT_FROM || "Undercover <onboarding@resend.dev>", to: [process.env.CONTACT_TO], subject: "Undercover · Contact us" + (name ? ` · ${name}` : ""), text, ...(from ? { reply_to: from } : {}) }),
+      });
+      if (!r.ok) console.error("[contact] email failed", r.status, await r.text());
+    } catch (e) { console.error("[contact] email failed", e.message); }
+  }
+  res.json({ ok: true });
+});
+
+/* ---------- friends ---------- */
+// Each browser has a private token (it holds your seat). Friends see only a public ID derived
+// from it, which can't be turned back into the token. Friend lists live in each browser;
+// the server only knows who is online right now and passes requests and invites along.
+const PUB_SALT = process.env.PUB_SALT || "undercover-friends-v1";
+const pubId = (token) => crypto.createHash("sha256").update(PUB_SALT + ":" + token).digest("base64url").slice(0, 12);
+const online = new Map(); // pubId -> Set(socket.id)
+const pending = new Map(); // pubId -> [events waiting for them to come online]
+function deliver(toPub, event, data) {
+  const ids = online.get(toPub);
+  if (ids && ids.size) { for (const id of ids) io.to(id).emit(event, data); return true; }
+  const q = (pending.get(toPub) || []).filter((x) => !(x.event === event && x.data.from === data.from)).slice(-20);
+  q.push({ event, data, t: Date.now() }); pending.set(toPub, q);
+  return false;
+}
+
 // Public rooms anyone can browse and join. Private rooms are reachable only by code or link.
 app.get("/api/packs", (_req, res) => res.json(WORDS.CATALOG));
 
@@ -42,6 +94,11 @@ app.get("/api/rooms", (_req, res) => {
     return {
       code: r.code,
       owner: r.players.get(r.ownerId)?.name || "",
+      house: !!r.system,
+      pubs: here.filter((p) => !p.bot).map((p) => pubId(p.id)), // lets a viewer hide rooms with people they blocked
+      packIds: r.settings.packs,
+      need: Math.max(0, rules.minPlayers(r.settings) - here.length), // players still needed to start
+      startsIn: r.autoAt ? Math.max(0, r.autoAt - Date.now()) : null, // ms until the automatic start
       players: here.length,
       ai: here.filter((p) => p.bot).length,
       max: MAX_PLAYERS,
@@ -91,13 +148,14 @@ function freeAvatar(room) {
 }
 const cleanName = (n) => String(n || "").replace(/[\u0000-\u001f<>]/g, "").replace(/\s+/g, " ").trim().slice(0, NAME_MAX);
 
-// The room owner's choices: undercover count, Mr. White and word packs (Basic is always on).
+// The room owner's choices: undercover count, Mr. White and word packs (any mix, at least one).
 function applySettings(room, s) {
   if (s.undercovers === "auto" || [1, 2, 3, 4].includes(s.undercovers)) room.settings.undercovers = s.undercovers;
   if (typeof s.mrWhite === "boolean") room.settings.mrWhite = s.mrWhite;
+  if (typeof s.whiteHint === "boolean") room.settings.whiteHint = s.whiteHint;
   if (Array.isArray(s.packs)) {
     const valid = s.packs.filter((id) => typeof id === "string" && WORDS.PACKS[id]);
-    room.settings.packs = ["basic", ...new Set(valid.filter((id) => id !== "basic"))];
+    if (valid.length) room.settings.packs = [...new Set(valid)]; // an empty choice keeps the current packs
   }
 }
 
@@ -106,11 +164,12 @@ function makeRoom(ownerId) {
     code: newCode(),
     ownerId, // the room owner only picks settings; the game itself runs automatically
     players: new Map(), // id -> {id,name,connected,sockets:Set,score,joinedAt,ready,dropTimer}
-    settings: { undercovers: "auto", mrWhite: false, packs: ["basic"], visibility: "private" },
+    settings: { undercovers: "auto", mrWhite: false, whiteHint: true, packs: ["basic"], visibility: "private" },
     usedPairs: new Set(),
     game: null,
     gameNo: 0,
     startAt: null,
+    autoAt: null,
     startTimer: null,
     botKeys: new Set(), // AI actions already scheduled, so each happens once
     chat: [], // last CHAT_KEEP messages: {id, name, text, t}
@@ -122,7 +181,7 @@ const inLobby = (room) => !room.game || room.game.phase === "over";
 // Open public rooms, best first: waiting before playing, then the fullest (more fun to join).
 function publicRooms() {
   return [...rooms.values()]
-    .filter((r) => r.settings.visibility === "public" && r.players.size < MAX_PLAYERS && [...r.players.values()].some((p) => !p.bot && p.connected))
+    .filter((r) => r.settings.visibility === "public" && r.players.size < MAX_PLAYERS && (r.system || [...r.players.values()].some((p) => !p.bot && p.connected)))
     .sort((a, b) => (inLobby(b) - inLobby(a)) || (b.players.size - a.players.size));
 }
 const sortedPlayers = (room) => [...room.players.values()].sort((a, b) => a.joinedAt - b.joinedAt);
@@ -143,38 +202,112 @@ function removePlayer(room, id) {
   room.players.delete(id);
   if (!humans(room).length) { // only AI players left: close the room
     stopGameTimers(room);
-    rooms.delete(room.code);
+    if (room.system) resetHouseRoom(room); // a house room stays open for the next visitors
+    else rooms.delete(room.code);
+    maintainHouseRooms();
     return;
   }
   ensureOwner(room);
 }
 
+/* ---------- house rooms: public rooms that are always there to join ---------- */
+// So the home page never shows an empty list, the server keeps PUBLIC_POOL open public rooms
+// waiting for players, each with a random mix of word packs. The first person in runs it.
+const PUBLIC_POOL = Number(process.env.PUBLIC_POOL ?? 3);
+function randomPacks() {
+  const ids = Object.keys(WORDS.PACKS).sort(() => Math.random() - 0.5);
+  return ids.slice(0, 1 + Math.floor(Math.random() * 3)); // 1 to 3 packs
+}
+function makeHouseRoom() {
+  const room = makeRoom(null);
+  room.system = true;
+  room.settings.visibility = "public";
+  room.settings.packs = randomPacks();
+  rooms.set(room.code, room);
+  checkAutoStart(room);
+  return room;
+}
+function resetHouseRoom(room) {
+  for (const p of room.players.values()) clearTimeout(p.dropTimer);
+  room.players.clear();
+  room.game = null;
+  room.ownerId = null;
+  room.chat = [];
+  room.settings = { undercovers: "auto", mrWhite: false, whiteHint: true, packs: randomPacks(), visibility: "public" };
+  room.touched = Date.now();
+}
+function maintainHouseRooms() {
+  let open = publicRooms().filter((r) => inLobby(r));
+  // People left and there are more empty house rooms than needed: close the extras.
+  for (const r of open.filter((x) => x.system && !x.players.size)) {
+    if (open.length <= PUBLIC_POOL) break;
+    rooms.delete(r.code);
+    open = open.filter((x) => x !== r);
+  }
+  for (let i = open.length; i < PUBLIC_POOL; i++) makeHouseRoom();
+  for (const r of rooms.values()) if (r.system && inLobby(r) && !r.autoTimer) checkAutoStart(r); // e.g. after a game ends
+}
+
 /* ---------- auto start: everyone Ready → 3, 2, 1 ---------- */
+function scheduleAuto(room, secs) {
+  room.autoAt = Date.now() + ms(secs);
+  room.autoTimer = setTimeout(() => {
+    room.autoTimer = null;
+    room.autoAt = null;
+    if (!rooms.has(room.code) || !inLobby(room)) return;
+    const here = [...room.players.values()].filter((p) => p.connected);
+    if (here.some((p) => !p.bot) && !rules.checkSetup(here.length, room.settings)) {
+      const err = startGame(room);
+      if (err) io.to(room.code).emit("problem", err);
+    } else checkAutoStart(room); // not enough players yet: a house room starts its clock over
+    broadcast(room);
+  }, ms(secs));
+}
 function checkAutoStart(room) {
   if (!inLobby(room)) return;
   const here = [...room.players.values()].filter((p) => p.connected);
   // At least one person must be here — AI players never start a game on their own.
-  const allReady = here.some((p) => !p.bot) && here.every((p) => p.ready);
+  const people = here.some((p) => !p.bot);
   const okSize = !rules.checkSetup(here.length, room.settings);
-  if (allReady && okSize) {
-    if (room.startTimer) return;
-    room.startAt = Date.now() + ms(START_COUNTDOWN);
-    room.startTimer = setTimeout(() => {
-      room.startTimer = null;
-      room.startAt = null;
-      const err = startGame(room);
-      if (err) io.to(room.code).emit("problem", err);
-      broadcast(room);
-    }, ms(START_COUNTDOWN));
-  } else if (room.startTimer) {
+  // Nobody taps Ready: being in the room means you're in. Games start on a clock.
+  // House rooms run a rolling 3-minute clock, even when empty (no players → it starts over).
+  // Other rooms start their clock once there are enough players: 2 minutes in a public room,
+  // 30 seconds in a private one. The room owner can always start sooner with "Start now".
+  if (room.system) {
+    if (!room.autoTimer) scheduleAuto(room, HOUSE_WAIT);
+  } else if (people && okSize) {
+    if (!room.autoTimer) scheduleAuto(room, room.settings.visibility === "public" ? PUBLIC_WAIT : PRIVATE_WAIT);
+  } else if (room.autoTimer) {
+    clearTimeout(room.autoTimer);
+    room.autoTimer = null;
+    room.autoAt = null;
+  }
+  if (room.startTimer && !(people && okSize)) {
     clearTimeout(room.startTimer);
     room.startTimer = null;
     room.startAt = null;
   }
 }
 
+// The owner's "Start now": a 3-second countdown, then the game.
+function startSoon(room) {
+  if (room.startTimer) return;
+  room.startAt = Date.now() + ms(START_COUNTDOWN);
+  room.startTimer = setTimeout(() => {
+    room.startTimer = null;
+    room.startAt = null;
+    if (!inLobby(room)) return;
+    const err = startGame(room);
+    if (err) io.to(room.code).emit("problem", err);
+    broadcast(room);
+  }, ms(START_COUNTDOWN));
+}
+
 /* ---------------- game ---------------- */
 function stopGameTimers(room) {
+  clearTimeout(room.autoTimer);
+  room.autoTimer = null;
+  room.autoAt = null;
   clearTimeout(room.startTimer);
   room.startTimer = null;
   room.startAt = null;
@@ -194,6 +327,8 @@ function setTimer(room, secs, fn) {
 }
 
 function startGame(room) {
+  clearTimeout(room.autoTimer); room.autoTimer = null; room.autoAt = null;
+  setTimeout(maintainHouseRooms, 0);
   const ids = sortedPlayers(room).filter((p) => p.connected).map((p) => p.id);
   const err = rules.checkSetup(ids.length, room.settings);
   if (err) return err;
@@ -213,6 +348,9 @@ function startGame(room) {
   const decoys = WORDS.ALL.filter((x) => x.hint === w.hint && x.id !== w.id).sort(() => Math.random() - 0.5).slice(0, 2);
   const chatBlock = [w, ...decoys].flatMap((x) => [x.a, x.b]);
   const pair = Math.random() < 0.5 ? [w.a, w.b] : [w.b, w.a];
+  // Mr. White's hint: a word close to the Civilians' word (never either secret word or a form of it).
+  const near = Bots.assocOf(pair[0]).filter((c) => !rules.checkClue(c, pair[0], []).error && !rules.checkClue(c, pair[1], []).error);
+  const hintWord = near.length ? near[Math.floor(Math.random() * near.length)] : category;
 
   const order = shuffle(ids);
   const und = rules.undercoverCount(ids.length, room.settings);
@@ -229,7 +367,8 @@ function startGame(room) {
     roles,
     words: { civ: pair[0], und: pair[1] },
     outRoles: {},
-    category, // shown only to Mr. White, and only once they've had to speak first
+    category, // used by AI players
+    hintWord, // shown only to Mr. White, and only once they've had to speak first
     chatBlock,
     whiteHint: false,
     alive: ids.slice(),
@@ -254,8 +393,9 @@ function nextRound(room) {
   const g = room.game;
   g.round++;
   g.turnOrder = rules.speakingOrder(g.alive, g.roles, shuffle);
-  // Mr. White opening a round has nothing to go on — give them the category as a hint.
-  if (g.roles[g.turnOrder[0]] === "white") g.whiteHint = true;
+  // Mr. White opening a round has nothing to go on — give them a hint word.
+  // (The room owner can switch this hint off when creating the room.)
+  if (g.roles[g.turnOrder[0]] === "white" && room.settings.whiteHint !== false) g.whiteHint = true;
   g.turnIdx = 0;
   g.votes = {};
   g.candidates = null;
@@ -375,6 +515,7 @@ function endGame(room, winner) {
   }
   // Offline players are dropped from the room between games.
   for (const p of [...room.players.values()]) if (!p.connected) scheduleDrop(room, p);
+  checkAutoStart(room); // public rooms: start the clock for the next game
   broadcast(room);
 }
 
@@ -395,12 +536,12 @@ function scheduleDrop(room, p) {
 function view(room, pid) {
   const g = room.game;
   const players = sortedPlayers(room).map((p) => ({
-    id: p.id, name: p.name, avatar: p.avatar ?? 0, named: !!(p.named || p.bot), connected: p.connected, score: p.score, ready: p.ready, bot: !!p.bot,
+    id: p.id, pub: p.bot ? null : pubId(p.id), name: p.name, avatar: p.avatar ?? 0, named: !!(p.named || p.bot), connected: p.connected, score: p.score, ready: p.ready, bot: !!p.bot,
     inGame: !!(g && p.id in g.roles), alive: !!(g && g.alive.includes(p.id)),
   }));
   const here = players.filter((p) => p.connected).length;
   const plan = { undercovers: rules.undercoverCount(Math.max(here, 3), room.settings), need: rules.minPlayers(room.settings), auto: rules.autoUndercovers(Math.max(here, 3)) };
-  const v = { code: room.code, ownerId: room.ownerId, you: pid, players, chat: room.chat, plan, settings: room.settings, packs: WORDS.CATALOG, times: { clue: CLUE_SECS, vote: VOTE_SECS }, gameNo: room.gameNo, startAt: room.startAt, now: Date.now(), game: null };
+  const v = { code: room.code, ownerId: room.ownerId, you: pid, players, chat: room.chat, plan, settings: room.settings, packs: WORDS.CATALOG, times: { clue: CLUE_SECS, vote: VOTE_SECS }, gameNo: room.gameNo, startAt: room.startAt, autoAt: room.autoAt || null, now: Date.now(), game: null };
   if (!g) return v;
   const myRole = g.roles[pid];
   v.game = {
@@ -418,10 +559,12 @@ function view(room, pid) {
     targets: g.phase === "vote" && g.alive.includes(pid) ? voteTargets(g, pid) : [],
     lastResult: g.lastResult,
     outRoles: g.outRoles,
+    // How many hidden players are still in — a count only, never who.
+    left: { und: g.alive.filter((id) => g.roles[id] === "und").length, white: g.alive.filter((id) => g.roles[id] === "white").length },
     whiteGuess: g.whiteGuess,
     winner: g.winner,
     // What *this* player knows about themself. The Undercover is NOT told they are the Undercover.
-    me: !myRole ? { spectator: true } : myRole === "white" ? { white: true, hint: g.whiteHint ? g.category : null } : { word: g.words[myRole] },
+    me: !myRole ? { spectator: true } : myRole === "white" ? { white: true, hint: g.whiteHint ? g.hintWord : null } : { word: g.words[myRole] },
     reveal: g.phase === "over" ? { roles: g.roles, words: g.words, category: g.category } : null,
     whiteId: g.phase === "whiteguess" ? g.lastResult.id : null,
   };
@@ -479,6 +622,46 @@ function botTick(room) {
 /* ---------------- sockets ---------------- */
 io.on("connection", (socket) => {
   const fail = (msg) => socket.emit("problem", msg);
+
+  // Friends: say who you are once connected, so friends can see you're online.
+  socket.on("hello", ({ token } = {}) => {
+    if (!token || typeof token !== "string" || token.length > 80 || socket.data.pub) return;
+    const me = pubId(token);
+    socket.data.pub = me;
+    if (!online.has(me)) online.set(me, new Set());
+    online.get(me).add(socket.id);
+    socket.emit("me", { pub: me });
+    for (const x of pending.get(me) || []) if (Date.now() - x.t < 7 * 864e5) socket.emit(x.event, x.data);
+    pending.delete(me);
+  });
+  const sent = [];
+  const tooFast = () => { const now = Date.now(); while (sent.length && now - sent[0] > 60e3) sent.shift(); if (sent.length >= 20) return true; sent.push(now); return false; };
+  const profile = (p = {}) => ({ name: String(p.name || "Player").slice(0, 25), avatar: Number.isInteger(p.avatar) ? p.avatar : 0 });
+  socket.on("friendRequest", ({ to, me } = {}) => {
+    if (!socket.data.pub || typeof to !== "string" || to === socket.data.pub || tooFast()) return;
+    deliver(to, "friendRequest", { from: socket.data.pub, ...profile(me) });
+  });
+  socket.on("friendAccept", ({ to, me } = {}) => {
+    if (!socket.data.pub || typeof to !== "string" || tooFast()) return;
+    deliver(to, "friendAccepted", { from: socket.data.pub, ...profile(me) });
+  });
+  // Which of these friends are online, and where (room code, and whether a game is running).
+  socket.on("presence", (list, ack) => {
+    if (typeof ack !== "function" || !Array.isArray(list)) return;
+    ack(list.slice(0, 200).map((id) => {
+      const ids = online.get(id);
+      if (!ids || !ids.size) return { pub: id, online: false };
+      let where = null;
+      for (const sid of ids) { const c = io.sockets.sockets.get(sid)?.data.code; if (c && rooms.has(c)) where = c; }
+      const r = where && rooms.get(where);
+      return { pub: id, online: true, room: where, playing: !!(r && !inLobby(r)) };
+    }));
+  });
+  socket.on("invite", ({ to, me } = {}) => {
+    const { room } = ctx();
+    if (!room || !socket.data.pub || typeof to !== "string" || tooFast()) return;
+    deliver(to, "invite", { from: socket.data.pub, ...profile(me), code: room.code });
+  });
   const ctx = () => {
     const room = rooms.get(socket.data.code);
     const p = room && room.players.get(socket.data.pid);
@@ -579,12 +762,22 @@ io.on("connection", (socket) => {
     broadcast(room);
   });
 
-  socket.on("ready", (on) => {
+  // Change your picture any time, even mid-game (your name is locked while you're playing).
+  socket.on("avatar", (a) => {
     const { room, p } = ctx();
-    if (!room || !p || !inLobby(room)) return;
-    if (on && !p.named) return fail("Pick your name first.");
-    p.ready = !!on;
-    checkAutoStart(room);
+    if (!room || !p || !okAvatar(a)) return;
+    p.avatar = a;
+    broadcast(room);
+  });
+
+  // Room owner: skip the wait and start in 3 seconds (needs enough players).
+  socket.on("start", () => {
+    const { room, p } = ctx();
+    if (!room || room.ownerId !== p?.id || !inLobby(room)) return;
+    const n = [...room.players.values()].filter((x) => x.connected).length;
+    const err = rules.checkSetup(n, room.settings);
+    if (err) return fail(err);
+    startSoon(room);
     broadcast(room);
   });
 
@@ -593,8 +786,6 @@ io.on("connection", (socket) => {
     if (!room || room.ownerId !== p?.id || !inLobby(room)) return;
     applySettings(room, s);
     const gameplay = "undercovers" in s || "mrWhite" in s || "packs" in s;
-    // A gameplay change resets Ready so nobody starts a game they didn't agree to (AI players stay ready).
-    if (gameplay) for (const x of room.players.values()) x.ready = !!x.bot;
     checkAutoStart(room);
     broadcast(room);
   });
@@ -660,18 +851,6 @@ io.on("connection", (socket) => {
     if (!castVote(room, p.id, target)) fail("You can't vote for that player.");
   });
 
-  // Emoji reactions float up on everyone's screen. Nothing is stored; a short cooldown stops spamming.
-  const REACTIONS = ["😂", "🤔", "😮", "👀", "🔥", "👏"];
-  socket.on("react", (emoji) => {
-    const { room, p } = ctx();
-    if (!room || !p || !REACTIONS.includes(emoji)) return;
-    const now = Date.now();
-    if (now - (p.lastReact || 0) < 350) return;
-    p.lastReact = now;
-    room.touched = now;
-    io.to(room.code).emit("reaction", { id: p.id, name: p.name, emoji });
-  });
-
   // Tap your vote again to take it back (allowed until the countdown ends).
   socket.on("unvote", () => {
     const { room, p } = ctx();
@@ -692,6 +871,8 @@ io.on("connection", (socket) => {
   socket.on("leave", () => {
     const { room, p } = ctx();
     if (!room || !p) return;
+    // No walking out mid-game while you're still in it; once voted out you may go.
+    if (!inLobby(room) && room.game.alive.includes(p.id)) return;
     p.sockets.delete(socket.id);
     socket.leave(room.code);
     socket.data.code = null;
@@ -704,6 +885,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
+    if (socket.data.pub) { const set = online.get(socket.data.pub); if (set) { set.delete(socket.id); if (!set.size) online.delete(socket.data.pub); } }
     const { room, p } = ctx();
     if (!room || !p) return;
     p.sockets.delete(socket.id);
@@ -722,9 +904,13 @@ io.on("connection", (socket) => {
   });
 });
 
+maintainHouseRooms();
+const houseTick = setInterval(maintainHouseRooms, 15 * 1000);
+if (houseTick.unref) houseTick.unref();
 const cleanup = setInterval(() => {
   const now = Date.now();
-  for (const [code, r] of rooms) if (now - r.touched > ROOM_TTL_MS) { stopGameTimers(r); rooms.delete(code); }
+  for (const [code, r] of rooms) if (now - r.touched > ROOM_TTL_MS && !(r.system && !r.players.size)) { stopGameTimers(r); rooms.delete(code); }
+  maintainHouseRooms();
 }, 10 * 60 * 1000);
 if (cleanup.unref) cleanup.unref();
 

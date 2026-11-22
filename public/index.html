@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#f4f4f2">
+<base href="/">
 <title>Undercover</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <meta property="og:image" content="logo.png">
@@ -282,15 +283,6 @@ button:active{transform:scale(.96)}
 @keyframes stamp{to{opacity:1;transform:scale(1) rotate(-8deg)}}
 .conf{position:absolute;top:-14px;width:9px;height:14px;border-radius:2px;animation:fall 3s linear forwards}
 @keyframes fall{to{top:105vh;transform:translateX(40px) rotate(720deg)}}
-.react{position:absolute;bottom:90px;display:flex;flex-direction:column;align-items:center;animation:rise 2.6s ease-out forwards}
-.react span{font-size:40px;line-height:1}
-.react small{font-size:12px;font-weight:700;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:1px 8px;margin-top:2px}
-@keyframes rise{0%{transform:translateY(20px) scale(.6);opacity:0}15%{transform:translateY(0) scale(1.1);opacity:1}100%{transform:translateY(-55vh) scale(1);opacity:0}}
-.reactdock{position:fixed;left:max(16px,env(safe-area-inset-left));bottom:max(16px,env(safe-area-inset-bottom));z-index:12;display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.12)}
-.reactdock:empty{display:none}
-@media(max-width:520px){.reactdock button{width:34px;min-height:34px;font-size:18px}}
-.reactdock button{width:42px;min-height:42px;padding:0;border-radius:50%;background:transparent;font-size:22px;line-height:1}
-.reactdock button:hover{background:var(--bg);transform:translateY(-2px)}
 [data-sound][aria-pressed=false]{color:var(--soft)}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 .tag.ai{background:var(--ink);color:var(--card)}
@@ -371,7 +363,7 @@ button:active{transform:scale(.96)}
 @keyframes castHop{0%,100%{transform:translateY(0)}40%{transform:translateY(-12px)}}
 @keyframes castSink{to{transform:translateY(5px) rotate(-8deg) scale(.92)}}
 .endhero.seen,.endhero.seen .rl.hero,.endhero.seen .endcast li,.endhero.seen .endcast li .rl{animation:none!important}.endhero.seen .rl-civ .hat{animation:none}.endhero.seen .rl.happy .nm{animation:none;opacity:0}.endhero.seen .rl.happy .hp{animation:none;opacity:1}
-@media (prefers-reduced-motion:reduce){.endart.crowd span,.rl *,.rl,.endcast li,.endcast li .rl{animation:none!important}.rl.happy .nm{opacity:0}.rl.happy .hp{opacity:1}}
+@media (prefers-reduced-motion:reduce){.endart.crowd span,.rl *,.rl,.endcast li,.endcast li .rl{animation:none!important}.rl.happy .nm{opacity:0}.rl.happy .hp{opacity:1}.rl.exposed .cover,.rl.exposed .nm{opacity:0}.rl.exposed .ex{opacity:1}}
 .avatar.emo{background:none;overflow:hidden}.avatar.emo svg,.avopt svg{width:100%;height:100%;display:block}
 .avatar.emo.sm{width:36px;height:36px;font-size:20px}
 .avpick{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin:14px 0 6px}
@@ -389,9 +381,10 @@ button:active{transform:scale(.96)}
 .board li.lead{background:#eff6ff;box-shadow:inset 0 0 0 2px var(--pink)}
 .board li.lead .pts b{color:var(--pink);font-size:26px}
 .board li.me:not(.lead){background:var(--bg)}
-.endart.crowd{width:auto;height:118px;padding-top:30px;display:flex;justify-content:center;align-items:flex-end;margin-bottom:22px}
+.endart.crowd{width:auto;height:110px;padding-top:20px;display:flex;justify-content:center;align-items:flex-end;margin-bottom:22px}
 .endart.crowd span{width:66px;height:66px;margin:0 -3px;position:relative;z-index:calc(10 - var(--i));animation:crowdIn .4s ease-out both;animation-delay:calc(var(--i) * 70ms)}
 .endart.crowd span:nth-child(3){width:84px;height:84px}.endart.crowd span:nth-child(2),.endart.crowd span:nth-child(4){width:74px;height:74px}
+.endart.crowd svg.rl{width:100%;height:100%}
 .endart.crowd .rl{animation:party .5s ease-in-out infinite alternate;animation-delay:calc(var(--i) * -170ms)}
 .rl-civ.party .hat{animation:capToss 1.3s ease-in-out infinite;animation-delay:calc(var(--i) * 150ms + .5s)}
 @keyframes crowdIn{from{opacity:0;transform:translateY(20px)}}
@@ -404,14 +397,90 @@ button:active{transform:scale(.96)}
 @keyframes trail{0%,20%,50%,100%{opacity:0;transform:none}32%{opacity:1;transform:translateX(4px)}44%{opacity:0;transform:translateX(18px)}}
 .endhero.seen .endart.crowd span{animation:none}
 .endhero.seen .rl-white.escape .ghost,.endhero.seen .rl-white.escape .trail{animation:none}
+@media (max-width:640px){.endart.crowd{height:92px;padding-top:22px;margin-bottom:14px}.endart.crowd span{width:46px;height:46px;margin:0 -2px}.endart.crowd span:nth-child(3){width:58px;height:58px}.endart.crowd span:nth-child(2),.endart.crowd span:nth-child(4){width:52px;height:52px}
+  .bar{flex-wrap:wrap;gap:8px}.bar>.row{flex-wrap:nowrap;gap:6px}#setBtn .lbl{display:none}.bar button.sm{padding:8px 10px}.endcast li{width:64px}.endcast li .rl{width:42px;height:42px}}
+.autostart{margin:0 0 12px;font-weight:800;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}.autostart b{font-size:22px;color:var(--pink);font-variant-numeric:tabular-nums}.autostart span{margin-left:auto;color:var(--soft);font-size:14px}
+.avbtn{all:unset;cursor:pointer;border-radius:50%;display:inline-grid;transition:transform .12s}.avbtn:hover{transform:scale(1.08)}.avbtn:focus-visible{outline:2px solid var(--pink);outline-offset:2px}
+.avbtn .avatar{box-shadow:0 0 0 2px #fff,0 0 0 3.5px var(--pink)}
+.avatar.emo.xs{width:24px;height:24px;flex:none}
+.cmsg{display:flex;gap:8px;align-items:flex-start}.cmsg>span{min-width:0;overflow-wrap:anywhere}
+.chatcard{display:flex;align-items:center;gap:12px;width:min(320px,calc(100vw - 32px));min-height:0;padding:10px 12px;border-radius:18px;background:var(--card);color:var(--ink);border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.14);text-align:left}
+.chatcard .cico{position:relative;width:44px;height:44px;border-radius:12px;background:#eff6ff;display:grid;place-items:center;flex:none}
+.chatcard .cico svg{width:22px;height:22px;fill:var(--pink);stroke:none}
+.chatcard .badge{position:absolute;top:-6px;right:-6px;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--danger);color:#fff;font-size:12px;font-weight:800;display:grid;place-items:center;box-shadow:0 0 0 2px #fff}
+.chatcard .ctext{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.chatcard .ctext b{font-size:16px;font-weight:800}
+.chatcard .ctext span{font-size:14px;font-weight:500;color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chatcard.unread .ctext span{color:var(--ink);font-weight:600}
+.chatcard .cup{width:36px;height:36px;border-radius:10px;background:var(--bg);display:grid;place-items:center;flex:none}
+.chatcard.pop{animation:chatPop .45s ease-out}
+@keyframes chatPop{0%{transform:translateY(8px) scale(.97)}60%{transform:translateY(-3px)}100%{transform:none}}
+.rl .ex{opacity:0}.rl.exposed{overflow:visible}
+.rl.exposed .cover{transform-box:view-box;transform-origin:32px 20px;animation:coverOff .9s cubic-bezier(.5,-.3,.6,1) .9s both}
+.rl.exposed .nm{animation:rlOff .1s 1.25s both}
+.rl.exposed .ex{animation:exIn .35s cubic-bezier(.2,1.6,.4,1) 1.25s both;transform-box:fill-box;transform-origin:center}
+.rl.exposed{animation:heroIn .6s cubic-bezier(.2,1.4,.4,1) both,caught .5s ease-in-out 1.6s 2}
+@keyframes coverOff{0%{transform:none}25%{transform:translateY(3px)}100%{transform:translate(18px,-70px) rotate(35deg);opacity:0}}
+@keyframes exIn{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:none}}
+@keyframes caught{0%,100%{transform:none}25%{transform:translateX(-5px) rotate(-3deg)}75%{transform:translateX(5px) rotate(3deg)}}
+.endhero.seen .rl.exposed,.endhero.seen .rl.exposed .cover,.endhero.seen .rl.exposed .nm,.endhero.seen .rl.exposed .ex{animation:none}.endhero.seen .rl.exposed .cover{opacity:0}.endhero.seen .rl.exposed .nm{opacity:0}.endhero.seen .rl.exposed .ex{opacity:1}
+.ghead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.gchips{display:flex;gap:8px;flex-wrap:wrap}
+.gchip{background:var(--bg);border-radius:999px;padding:7px 14px;font-size:14px;font-weight:800;white-space:nowrap}
+.endart.hf{position:relative;width:100%;height:112px;margin:0 auto 8px}
+.endart.hf .m{position:absolute;top:22px;width:76px;height:76px;left:50%}
+.endart.hf .l{margin-left:-90px;animation:hfInL .6s cubic-bezier(.3,1.3,.5,1) both,hfClapL .35s ease-in .75s both,hfBackL .5s ease-out 1.1s both}
+.endart.hf .r{margin-left:14px;animation:hfInR .6s cubic-bezier(.3,1.3,.5,1) both,hfClapR .35s ease-in .75s both,hfBackR .5s ease-out 1.1s both}
+@keyframes hfInL{from{transform:translateX(-160px) rotate(-20deg);opacity:0}}
+@keyframes hfInR{from{transform:translateX(160px) rotate(20deg);opacity:0}}
+@keyframes hfClapL{to{transform:translate(10px,-14px) rotate(10deg)}}
+@keyframes hfClapR{to{transform:translate(-10px,-14px) rotate(-10deg)}}
+@keyframes hfBackL{from{transform:translate(10px,-14px) rotate(10deg)}to{transform:none}}
+@keyframes hfBackR{from{transform:translate(-10px,-14px) rotate(-10deg)}to{transform:none}}
+.endart.hf .hand{position:absolute;width:21px;height:21px;border-radius:50%;background:#fff;border:3px solid var(--ink);top:4px}
+.endart.hf .l .hand{right:-12px}.endart.hf .r .hand{left:-12px}
+.endart.hf .burst{position:absolute;left:50%;top:14px;width:0;height:0}
+.endart.hf .burst i{position:absolute;left:-2px;top:-12px;width:4px;height:12px;border-radius:2px;background:var(--pink);transform-origin:2px 26px;opacity:0;animation:hfRay .55s ease-out 1.05s both}
+@keyframes hfRay{0%{opacity:0;transform:rotate(var(--a)) translateY(8px) scaleY(.3)}30%{opacity:1}100%{opacity:0;transform:rotate(var(--a)) translateY(-10px) scaleY(1)}}
+.endart.hf .rl.happy{--hd:1.05s}
+.endhero.seen .endart.hf .m,.endhero.seen .endart.hf .burst i{animation:none}
+@media (prefers-reduced-motion:reduce){.endart.hf .m,.endart.hf .burst i{animation:none}}
+.invl{display:flex;flex-direction:column;gap:10px;width:100%}.invl .code{color:var(--ink);letter-spacing:.06em;font-size:15px}
+.linkpill{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:56px;padding:8px 8px 8px 22px;border-radius:999px;background:var(--ink);color:#fff;font-size:17px;text-align:left}
+.linkpill .lt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:800;user-select:all}
+.linkpill .lc{display:flex;align-items:center;gap:6px;flex:none;background:var(--pink);border-radius:999px;padding:9px 16px;font-size:15px}
+.linkpill.done .lc{background:#fff;color:var(--ink)}
+.rooms li{align-items:center}.ricons{display:flex;flex:none}.ricons .pico{width:34px;height:34px;border-radius:10px;box-shadow:0 0 0 2px #fff}.ricons .pico+.pico{margin-left:-10px}
+.rooms .nm{flex:1;min-width:0}.rmeta{font-weight:600}.rwhen{display:block;font-size:13px;font-weight:700;color:var(--soft);margin-top:2px}.rwhen.live{color:var(--pink)}.rwhen b{font-variant-numeric:tabular-nums}
+.rthumb{position:relative;flex:none;width:96px;height:72px;border-radius:14px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.12)}.rthumb .packart{width:100%;height:100%;display:block}
+.rmore{position:absolute;right:5px;bottom:5px;background:rgba(17,17,20,.78);color:#fff;font-size:12px;font-weight:800;border-radius:999px;padding:2px 7px}
+.rooms li{gap:14px;padding:12px 0}
+.pbar{height:8px;border-radius:999px;background:var(--line);overflow:hidden;margin:4px 0 0}.pbar i{display:block;height:100%;background:var(--pink);border-radius:999px;transition:width .3s}
+.startbtn{margin-top:14px;background:var(--ink);color:#fff}
+.frbtn{display:inline-flex;align-items:center;gap:6px;position:relative}.frbtn .badge{min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--danger);color:#fff;font-size:11px;display:grid;place-items:center}
+.frbtn .dot{width:8px;height:8px;border-radius:50%;background:var(--pink)}
+.frtag{font-size:12px;font-weight:800;color:var(--pink);margin-left:6px}.frtag.muted{color:var(--soft)}
+.notes{position:fixed;left:max(16px,env(safe-area-inset-left));bottom:max(16px,env(safe-area-inset-bottom));z-index:25;display:flex;flex-direction:column;gap:8px;width:min(360px,calc(100vw - 32px))}
+.note{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px 10px 10px 12px;box-shadow:0 10px 30px rgba(0,0,0,.14);animation:chatPop .45s ease-out}
+.note .nt{flex:1;min-width:0;display:flex;flex-direction:column}.note .nt b{font-size:15px}.note .nt span{font-size:13px;color:var(--soft);font-weight:600}
+.socialcard{position:relative;width:min(520px,100%);margin:0;box-shadow:0 20px 60px rgba(0,0,0,.25)}.frtabs{margin:12px 0 4px}.frlist{max-height:min(420px,55vh);overflow:auto}
+.frlist .nm{flex:1;min-width:0}.fst{font-size:13px;font-weight:600;color:var(--soft)}.fst.on{color:var(--pink)}.fst.on:before{content:"● ";font-size:10px}
+.frlist .rm{font-size:12px;color:var(--soft)}.frlist .empty{color:var(--soft);font-weight:600;justify-content:center;padding:22px 0}
+.foot{max-width:1240px;margin:28px auto 0;text-align:center}.foot .linkbtn{color:var(--soft);font-size:14px}
+.ctform{display:flex;flex-direction:column;gap:12px;margin-top:12px}.ctform label{display:flex;flex-direction:column;gap:6px;font-weight:800;font-size:14px}
+.ctform input,.ctform textarea{font:500 16px Inter,sans-serif;border:2px solid var(--line);border-radius:14px;padding:10px 12px;background:#fff;color:var(--ink);resize:vertical}
+.ctform input:focus,.ctform textarea:focus{outline:none;border-color:var(--pink)}.ctdone{font-weight:700;font-size:17px;margin:14px 0 18px}
+@media (max-width:640px){.frbtn .lbl{display:none}}
+.srow.sub{padding-left:22px}.srow .sl small{display:block;font-size:13px;font-weight:600;color:var(--soft)}
+.blk{color:var(--soft)!important;font-size:12px!important;margin-left:8px!important}
 .brand{display:flex;align-items:center;gap:12px}.logo{width:44px;height:44px;border-radius:11px;flex:none}.logo.sm{width:26px;height:26px;border-radius:7px;vertical-align:-7px;margin-right:10px}
 </style>
 </head>
 <body>
 <div class="wrap" id="app"></div>
 <div class="fx" id="fx" aria-hidden="true"></div>
-<div class="reactdock" id="reactDock"></div>
 <div class="chatdock" id="chatDock"></div>
+<div class="notes" id="notes" aria-live="polite"></div>
+<div id="socialM"></div>
 <div class="toast" id="toast" role="status" hidden></div>
 
 <div class="modal" id="rulesM" hidden role="dialog" aria-modal="true" aria-labelledby="rulesH">
@@ -451,9 +520,12 @@ if (!token) { token = crypto.randomUUID ? crypto.randomUUID() : Math.random().to
 
 const params = new URLSearchParams(location.search);
 
+let pubTick = null;
 let editingName = false, nameErr = "", nameDraft = null, avDraft = null, endShown = {};
 let S = null, skew = 0, hideWord = false, clueErr = "", draft = "", toastT = null, tick = null, joining = false, chatDraft = "", chatErr = "", lastChatLen = 0;
-let lastRoom = params.get("room")?.toUpperCase() || store.get("uc-room");
+// An invite link (/r/ABCD, or the older ?room=ABCD) drops you straight into that room.
+let linkRoom = ((location.pathname.match(/^\/r\/([a-z]{4})\/?$/i) || [])[1] || params.get("room") || "").toUpperCase() || null;
+let lastRoom = linkRoom || store.get("uc-room");
 
 function toast(msg) {
   toastEl.textContent = msg; toastEl.hidden = false;
@@ -463,46 +535,44 @@ const left = (at) => Math.max(0, Math.ceil((at - (Date.now() + skew)) / 1000));
 
 // Picture avatars: everyone gets a random one on joining and can change it with their name.
 const AV_SKIN = ["#f8d5b8", "#eebd94", "#d39a6a", "#a86b45", "#7a4a2c"];
-const AV_HAIR = ["#1c1c1e", "#5b3a29", "#a0522d", "#e0b04f", "#d9d9d9", "#2563eb", "#c2410c"];
-const AV_BGS = ["#dbeafe", "#fef3c7", "#fce7f3", "#ede9fe", "#ffedd5", "#e0f2fe", "#fee2e2", "#f3f4f6"];
+const AV_INK = "#1c1c1e";
+const avFace = (skin, o = {}) => {
+  const y = o.y || 37, I = AV_INK;
+  const eyes = o.eyes === "closed" ? `<path d="M24.5 ${y}c1 1.6 4 1.6 5 0M34.5 ${y}c1 1.6 4 1.6 5 0" fill="none" stroke="${I}" stroke-width="2" stroke-linecap="round"/>`
+    : o.eyes === "none" ? "" : `<circle cx="27" cy="${y}" r="2.1" fill="${I}"/><circle cx="37" cy="${y}" r="2.1" fill="${I}"/>`;
+  const mouth = o.mouth === "o" ? `<ellipse cx="32" cy="${y + 6.5}" rx="2" ry="2.4" fill="${I}"/>` : o.mouth === "none" ? "" : `<path d="M28.6 ${y + 5}c1.9 2 4.9 2 6.8 0" fill="none" stroke="${I}" stroke-width="2" stroke-linecap="round"/>`;
+  return `<circle cx="32" cy="${y}" r="13.5" fill="${skin}"/>${eyes}${mouth}`;
+};
 const AVATARS = [
-  [0, 0, 0, "short", ""], [1, 2, 1, "long", ""], [2, 1, 3, "bun", ""], [3, 3, 0, "curly", ""],
-  [4, 0, 2, "bob", "glasses"], [5, 4, 0, "buzz", ""], [6, 1, 0, "spiky", ""], [7, 2, 4, "short", "glasses"],
-  [0, 3, 0, "bun", ""], [1, 0, 6, "long", ""], [2, 2, 0, "side", "glasses"], [3, 1, 1, "bob", ""],
-  [4, 4, 0, "curly", "glasses"], [5, 0, 3, "spiky", ""], [6, 3, 1, "long", "glasses"], [7, 1, 5, "side", ""],
-  [0, 2, 1, "beanie", ""], [1, 4, 0, "bob", ""], [2, 0, 0, "buzz", "glasses"], [3, 2, 6, "bun", ""],
-  [4, 1, 0, "cap", ""], [5, 3, 3, "short", ""], [6, 0, 4, "bun", "glasses"], [7, 4, 2, "spiky", ""],
+  // [name, background, draw()]
+  ["Astronaut", "#bfdbfe", () => `<circle cx="32" cy="37" r="19" fill="#fff" stroke="${AV_INK}" stroke-width="2.4"/>${avFace(AV_SKIN[0])}<path d="M17 30a16 16 0 0 1 9-10" stroke="#93c5fd" stroke-width="3" fill="none" stroke-linecap="round"/><rect x="29" y="12" width="6" height="7" rx="2" fill="#fff" stroke="${AV_INK}" stroke-width="2"/><circle cx="32" cy="10" r="2.6" fill="#ef4444"/>`],
+  ["Robot", "#e2e8f0", () => `<path d="M32 14v6" stroke="${AV_INK}" stroke-width="2.4"/><circle cx="32" cy="12" r="3" fill="#ef4444"/><rect x="17" y="21" width="30" height="28" rx="7" fill="#94a3b8" stroke="${AV_INK}" stroke-width="2.4"/><rect x="21" y="27" width="22" height="10" rx="4" fill="${AV_INK}"/><circle cx="27" cy="32" r="2.4" fill="#22d3ee"/><circle cx="37" cy="32" r="2.4" fill="#22d3ee"/><path d="M26 43h12" stroke="${AV_INK}" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="2 2"/><rect x="13" y="30" width="4" height="9" rx="2" fill="${AV_INK}"/><rect x="47" y="30" width="4" height="9" rx="2" fill="${AV_INK}"/>`],
+  ["Alien", "#ede9fe", () => `<path d="M24 22l-5-9M40 22l5-9" stroke="${AV_INK}" stroke-width="2.2" stroke-linecap="round"/><circle cx="19" cy="12" r="2.6" fill="#a3e635"/><circle cx="45" cy="12" r="2.6" fill="#a3e635"/><ellipse cx="32" cy="36" rx="15" ry="16" fill="#a3e635" stroke="${AV_INK}" stroke-width="2.2"/><ellipse cx="25.5" cy="35" rx="3.4" ry="4.4" fill="${AV_INK}"/><ellipse cx="38.5" cy="35" rx="3.4" ry="4.4" fill="${AV_INK}"/><circle cx="32" cy="27" r="2.6" fill="${AV_INK}"/><path d="M29 44c1.8 1.6 4.2 1.6 6 0" fill="none" stroke="${AV_INK}" stroke-width="2" stroke-linecap="round"/>`],
+  ["Ninja", "#fee2e2", () => `<circle cx="32" cy="36" r="15" fill="${AV_INK}"/><rect x="18" y="31" width="28" height="10" rx="5" fill="${AV_SKIN[1]}"/><path d="M24.5 36l5 1M39.5 36l-5 1" stroke="${AV_INK}" stroke-width="2.4" stroke-linecap="round"/><path d="M45 30l9-4-3 7z" fill="#ef4444"/><rect x="17" y="28.5" width="30" height="3" rx="1.5" fill="#ef4444"/>`],
+  ["Pirate", "#fef3c7", () => `${avFace(AV_SKIN[2])}<path d="M18 31c1-9 7-13 14-13s13 4 14 13z" fill="#dc2626"/><circle cx="25" cy="24" r="1.6" fill="#fff"/><circle cx="33" cy="22" r="1.6" fill="#fff"/><path d="M46 29l7 5-7 1z" fill="#dc2626"/><circle cx="37" cy="37" r="3.6" fill="${AV_INK}"/><path d="M19 33l22 2" stroke="${AV_INK}" stroke-width="1.6"/>`],
+  ["Chef", "#ffedd5", () => `${avFace(AV_SKIN[0], { y: 40 })}<rect x="21" y="24" width="22" height="7" rx="2" fill="#fff" stroke="${AV_INK}" stroke-width="2"/><path d="M21 25c-5 0-7-4-6-7 1-4 6-5 8-3 1-4 4-6 9-6s8 2 9 6c2-2 7-1 8 3 1 3-1 7-6 7z" fill="#fff" stroke="${AV_INK}" stroke-width="2" stroke-linejoin="round"/><path d="M28 45c1 .8 2.4 1.4 4 1.4s3-.6 4-1.4" stroke="#7c2d12" stroke-width="0"/><path d="M26 44.5c2-1.6 4-1.6 6 0 2-1.6 4-1.6 6 0" fill="none" stroke="#7c2d12" stroke-width="2.2" stroke-linecap="round"/>`],
+  ["Wizard", "#ddd6fe", () => `${avFace(AV_SKIN[1], { y: 40 })}<path d="M19 50c2 8 24 8 26 0l-4-6c-3 3-15 3-18 0z" fill="#e5e7eb"/><path d="M15 30h34l-4-3-10-19c-2-2-4-1-5 1l-11 18z" fill="#7c3aed" stroke="${AV_INK}" stroke-width="2" stroke-linejoin="round"/><path d="M30 20l1 2 2 .4-1.5 1.4.4 2-1.9-1-1.9 1 .4-2-1.5-1.4 2-.4z" fill="#facc15"/>`],
+  ["King", "#fef9c3", () => `${avFace(AV_SKIN[0], { y: 38 })}<path d="M20 44c2 9 22 9 24 0-3 3-7 4-12 4s-9-1-12-4z" fill="#92400e"/><path d="M19 27l2-12 6 6 5-9 5 9 6-6 2 12z" fill="#facc15" stroke="${AV_INK}" stroke-width="2" stroke-linejoin="round"/><circle cx="32" cy="22" r="2" fill="#ef4444"/>`],
+  ["Viking", "#e0f2fe", () => `${avFace(AV_SKIN[0], { y: 37 })}<path d="M18 42c0 12 28 12 28 0-4 2-9 3-14 3s-10-1-14-3z" fill="#ea580c"/><path d="M17 31c0-10 7-15 15-15s15 5 15 15z" fill="#94a3b8" stroke="${AV_INK}" stroke-width="2"/><path d="M17 27c-6-1-9-7-8-13 3 4 6 6 10 7zM47 27c6-1 9-7 8-13-3 4-6 6-10 7z" fill="#fff" stroke="${AV_INK}" stroke-width="2" stroke-linejoin="round"/>`],
+  ["Cowboy", "#fde68a", () => `${avFace(AV_SKIN[2], { y: 39 })}<path d="M10 29c6 3 38 3 44 0-2 4-8 6-22 6S12 33 10 29z" fill="#92400e" stroke="${AV_INK}" stroke-width="1.8"/><path d="M21 30c-1-8 2-15 6-15 2 0 3 2 5 2s3-2 5-2c4 0 7 7 6 15z" fill="#b45309" stroke="${AV_INK}" stroke-width="1.8"/><path d="M21 27h22" stroke="${AV_INK}" stroke-width="2.4"/>`],
+  ["Firefighter", "#fecaca", () => `${avFace(AV_SKIN[3], { y: 39 })}<path d="M15 32c0-10 7-16 17-16s17 6 17 16z" fill="#dc2626" stroke="${AV_INK}" stroke-width="2"/><path d="M11 32h42" stroke="${AV_INK}" stroke-width="4" stroke-linecap="round"/><path d="M32 18l2.6 4.4-2.6 5-2.6-5z" fill="#facc15" stroke="${AV_INK}" stroke-width="1.4"/>`],
+  ["Diver", "#a5f3fc", () => `${avFace(AV_SKIN[1], { eyes: "none", mouth: "none" })}<rect x="20" y="29" width="24" height="12" rx="6" fill="#67e8f9" stroke="${AV_INK}" stroke-width="2.4"/><circle cx="27" cy="35" r="2" fill="${AV_INK}"/><circle cx="37" cy="35" r="2" fill="${AV_INK}"/><path d="M45 34h4v-16" fill="none" stroke="#f97316" stroke-width="4" stroke-linecap="round"/><path d="M29 46h6" stroke="${AV_INK}" stroke-width="2.4" stroke-linecap="round"/><path d="M19 32c-2-2-3-4-2-6M45 32c2-2 3-4 2-6" stroke="${AV_INK}" stroke-width="2.4" fill="none"/>`],
+  ["Artist", "#fbcfe8", () => `${avFace(AV_SKIN[0], { mouth: "none" })}<path d="M26 42c2-2 4-2 6 0 2-2 4-2 6 0" fill="none" stroke="${AV_INK}" stroke-width="2.6" stroke-linecap="round"/><ellipse cx="30" cy="25" rx="15" ry="6" fill="#be123c" stroke="${AV_INK}" stroke-width="2" transform="rotate(-10 30 25)"/><path d="M30 19v-4" stroke="${AV_INK}" stroke-width="2.4" stroke-linecap="round"/><circle cx="46" cy="47" r="4" fill="#3b82f6"/><circle cx="51" cy="42" r="3" fill="#facc15"/>`],
+  ["Rocker", "#f5d0fe", () => `${avFace(AV_SKIN[2])}<path d="M26 24l2-12 3 8 2-10 3 10 3-8 1 12z" fill="#ec4899" stroke="${AV_INK}" stroke-width="1.8" stroke-linejoin="round"/><path d="M19 34h26" stroke="${AV_INK}" stroke-width="2"/><rect x="21" y="33" width="9" height="6" rx="2.5" fill="${AV_INK}"/><rect x="34" y="33" width="9" height="6" rx="2.5" fill="${AV_INK}"/><circle cx="18" cy="41" r="1.8" fill="#facc15"/>`],
+  ["Scientist", "#ccfbf1", () => `${avFace(AV_SKIN[0], { y: 39 })}<path d="M17 33c-4-4-3-10 1-12-1-5 4-9 8-7 3-4 9-4 12 0 4-2 9 2 8 7 4 2 5 8 1 12" fill="#f8fafc" stroke="${AV_INK}" stroke-width="2"/><rect x="21" y="25" width="10" height="7" rx="3.5" fill="#99f6e4" stroke="${AV_INK}" stroke-width="2"/><rect x="33" y="25" width="10" height="7" rx="3.5" fill="#99f6e4" stroke="${AV_INK}" stroke-width="2"/>`],
+  ["Bunny hood", "#fce7f3", () => `<path d="M22 22c-4-8-3-16 0-16s5 8 4 16zM42 22c4-8 3-16 0-16s-5 8-4 16z" fill="#fff" stroke="${AV_INK}" stroke-width="2"/><circle cx="32" cy="37" r="17" fill="#fff" stroke="${AV_INK}" stroke-width="2"/>${avFace(AV_SKIN[1])}<ellipse cx="23.5" cy="41" rx="2.4" ry="1.5" fill="#f9a8d4"/><ellipse cx="40.5" cy="41" rx="2.4" ry="1.5" fill="#f9a8d4"/>`],
+  ["Graduate", "#dbeafe", () => `${avFace(AV_SKIN[3], { y: 39 })}<path d="M20 29c0-5 5-8 12-8s12 3 12 8z" fill="${AV_INK}"/><path d="M12 23l20-8 20 8-20 8z" fill="${AV_INK}"/><path d="M47 25v10" stroke="#facc15" stroke-width="2"/><circle cx="47" cy="36" r="2.2" fill="#facc15"/>`],
+  ["Clown", "#fecdd3", () => `<circle cx="18" cy="30" r="6" fill="#3b82f6"/><circle cx="46" cy="30" r="6" fill="#facc15"/><circle cx="21" cy="23" r="5" fill="#ec4899"/><circle cx="43" cy="23" r="5" fill="#22c55e"/>${avFace("#fff", { mouth: "none" })}<circle cx="32" cy="40" r="3.4" fill="#ef4444"/><path d="M25 44c3 4 11 4 14 0" fill="none" stroke="#ef4444" stroke-width="2.6" stroke-linecap="round"/><path d="M32 23l-3-7h6z" fill="#8b5cf6"/>`],
+  ["Pumpkin", "#ffedd5", () => `<path d="M32 21c1-5 3-7 6-8" stroke="#166534" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="25" cy="37" rx="10" ry="14" fill="#f97316" stroke="${AV_INK}" stroke-width="2"/><ellipse cx="39" cy="37" rx="10" ry="14" fill="#f97316" stroke="${AV_INK}" stroke-width="2"/><ellipse cx="32" cy="37" rx="9" ry="14.5" fill="#fb923c" stroke="${AV_INK}" stroke-width="2"/><path d="M24 33l3-4 3 4zM34 33l3-4 3 4z" fill="${AV_INK}"/><path d="M25 41c2 4 12 4 14 0l-3 2-2-2-2 2-2-2-2 2z" fill="${AV_INK}"/>`],
+  ["Knight", "#e5e7eb", () => `<path d="M32 15c2-6 9-8 12-5-4 0-7 3-8 7" fill="#ef4444"/><path d="M18 50V32c0-10 6-15 14-15s14 5 14 15v18z" fill="#cbd5e1" stroke="${AV_INK}" stroke-width="2.2"/><rect x="21" y="32" width="22" height="4" rx="2" fill="${AV_INK}"/><path d="M32 38v10M27 41v5M37 41v5" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"/>`],
+  ["Princess", "#fae8ff", () => `<path d="M18 36c0-12 6-18 14-18s14 6 14 18v14c-3 2-5 2-6 0V36H24v14c-1 2-3 2-6 0z" fill="#facc15"/>${avFace(AV_SKIN[0])}<path d="M24 25l2-6 3 4 3-6 3 6 3-4 2 6z" fill="#e9d5ff" stroke="${AV_INK}" stroke-width="1.6" stroke-linejoin="round"/><circle cx="32" cy="22" r="1.6" fill="#ec4899"/>`],
+  ["Ballplayer", "#bae6fd", () => `${avFace(AV_SKIN[4], { y: 39 })}<path d="M18 32c0-9 6-14 14-14s14 5 14 14z" fill="#2563eb" stroke="${AV_INK}" stroke-width="2"/><path d="M14 32c-4 0-5-2-3-3l7-1" fill="#1d4ed8" stroke="${AV_INK}" stroke-width="2" stroke-linejoin="round"/><circle cx="38" cy="45" r="3.6" fill="#f9a8d4" stroke="${AV_INK}" stroke-width="1.4"/><text x="32" y="29" text-anchor="middle" font-family="Inter,Arial" font-weight="800" font-size="8" fill="#fff">U</text>`],
+  ["Sleepyhead", "#c7d2fe", () => `${avFace(AV_SKIN[1], { y: 40, eyes: "closed", mouth: "o" })}<path d="M18 33c0-10 6-15 14-15 6 0 12 3 16 10l6 10-8-4c-4-1-11-1-28-1z" fill="#6366f1" stroke="${AV_INK}" stroke-width="2" stroke-linejoin="round"/><circle cx="54" cy="39" r="3.4" fill="#fff" stroke="${AV_INK}" stroke-width="1.8"/><text x="46" y="16" font-family="Inter,Arial" font-weight="800" font-size="9" fill="#4338ca">z</text>`],
+  ["Mummy", "#f5f5f4", () => `<circle cx="32" cy="36" r="15" fill="#f5f5dc" stroke="${AV_INK}" stroke-width="2"/><path d="M18 29c8 3 20 1 28-3M17 38c9 1 20-1 29-4M19 45c8 1 17 0 25-4" stroke="#d6d3b1" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="27" cy="35" r="3" fill="#fff" stroke="${AV_INK}" stroke-width="1.4"/><circle cx="27" cy="35" r="1.4" fill="${AV_INK}"/><path d="M34 34h6" stroke="${AV_INK}" stroke-width="2.4" stroke-linecap="round"/>`],
 ];
 function avatarSVG(i) {
-  const [bg, sk, hc, style, extra] = AVATARS[i] || AVATARS[0];
-  const skin = AV_SKIN[sk], hair = AV_HAIR[hc];
-  const back = {
-    long: `<path d="M17 30c0-12 7-19 15-19s15 7 15 19v22H17z" fill="${hair}"/>`,
-    bob: `<path d="M16 31c0-12 7-19 16-19s16 7 16 19v8H16z" fill="${hair}"/>`,
-    curly: `<g fill="${hair}"><circle cx="20" cy="24" r="8"/><circle cx="32" cy="17" r="10"/><circle cx="44" cy="24" r="8"/><circle cx="17" cy="34" r="6"/><circle cx="47" cy="34" r="6"/></g>`,
-  }[style] || "";
-  const top = {
-    short: `<path d="M19 30c0-11 6-16 13-16s13 5 13 16c-3-5-8-7-13-7s-10 2-13 7z" fill="${hair}"/>`,
-    long: `<path d="M19 31c0-11 6-17 13-17s13 6 13 17c-4-6-9-9-13-9s-9 3-13 9z" fill="${hair}"/>`,
-    bun: `<circle cx="32" cy="11" r="6" fill="${hair}"/><path d="M19 30c0-11 6-16 13-16s13 5 13 16c-3-5-8-7-13-7s-10 2-13 7z" fill="${hair}"/>`,
-    curly: "",
-    bob: `<path d="M19 30c0-10 6-15 13-15s13 5 13 15c-5-2-9-6-11-9-3 4-8 7-15 9z" fill="${hair}"/>`,
-    buzz: `<path d="M20 28c0-9 5-13 12-13s12 4 12 13c-3-3-7-4-12-4s-9 1-12 4z" fill="${hair}" opacity=".85"/>`,
-    spiky: `<path d="M19 30l-1-12 6 4 3-9 5 7 5-7 3 9 6-4-1 12c-3-5-8-7-13-7s-10 2-13 7z" fill="${hair}"/>`,
-    side: `<path d="M19 31c0-11 6-17 14-17 7 0 12 5 12 13-6-1-13-4-17-8-2 4-5 8-9 12z" fill="${hair}"/>`,
-    beanie: `<path d="M18 28c0-10 6-16 14-16s14 6 14 16z" fill="${hair}"/><rect x="16.5" y="25" width="31" height="6" rx="3" fill="${hair}"/><circle cx="32" cy="11" r="3" fill="${hair}"/>`,
-    cap: `<path d="M19 27c0-9 6-14 13-14s13 5 13 14z" fill="${hair}"/><path d="M40 25h11a2 2 0 0 1 0 4H40z" fill="${hair}"/>`,
-  }[style];
-  const glasses = extra === "glasses"
-    ? `<g fill="none" stroke="#1c1c1e" stroke-width="1.8"><circle cx="27" cy="33" r="4"/><circle cx="37" cy="33" r="4"/><path d="M31 33h2"/></g>` : "";
-  return `<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="32" fill="${AV_BGS[bg]}"/>${back}
-    <path d="M14 64c0-11 8-17 18-17s18 6 18 17z" fill="${["#2563eb", "#1c1c1e", "#ffffff", "#6b7280"][i % 4]}"/>
-    <rect x="28" y="40" width="8" height="9" rx="3" fill="${skin}"/>
-    <ellipse cx="32" cy="32" rx="12.5" ry="13.5" fill="${skin}"/>
-    ${top}
-    <circle cx="27" cy="33" r="1.7" fill="#1c1c1e"/><circle cx="37" cy="33" r="1.7" fill="#1c1c1e"/>
-    <path d="M28.5 38.5c2 1.8 5 1.8 7 0" fill="none" stroke="#1c1c1e" stroke-width="1.8" stroke-linecap="round"/>
-    ${glasses}</svg>`;
+  const [, bg, draw] = AVATARS[i] || AVATARS[0];
+  return `<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="32" fill="${bg}"/>${draw()}</svg>`;
 }
 const avatarEl = (i, cls = "") => `<span class="avatar emo ${cls}">${avatarSVG(i || 0)}</span>`;
 function whoAmI() {
@@ -511,9 +581,11 @@ function whoAmI() {
 }
 const socket = io({ transports: ["websocket", "polling"] });
 socket.on("connect", () => {
+  socket.emit("hello", { token });
   // Rejoin the same seat automatically (same word, same vote) after a dropped connection or reload.
   const saved = store.get("uc-room");
-  if (saved) socket.emit("join", { code: saved, token, ...whoAmI() });
+  const target = linkRoom && !S ? linkRoom : saved;
+  if (target) socket.emit("join", { code: target, token, ...whoAmI() });
 });
 socket.on("disconnect", () => { if (S) toast("Connection lost — reconnecting…"); });
 socket.on("state", (st) => {
@@ -526,20 +598,19 @@ socket.on("state", (st) => {
   S = st; skew = st.now - Date.now(); joining = false;
   try { moments(prev, st); } catch (e) { console.error(e); }
   store.set("uc-room", st.code);
-  if (firstJoin) try { history.replaceState(null, "", "?room=" + st.code); } catch {}
+  if (firstJoin) try { history.replaceState(null, "", "/r/" + st.code); } catch {}
   render();
 });
-socket.on("reaction", (r) => floatReaction(r.emoji, r.name));
 socket.on("problem", (m) => { joining = false; toast(m); if (!S) { store.set("uc-room", null); render(); } });
-socket.on("kicked", () => { S = null; store.set("uc-room", null); try { history.replaceState(null, "", location.pathname); } catch {} toast("The room owner removed you."); render(); });
+socket.on("kicked", () => { S = null; store.set("uc-room", null); try { history.replaceState(null, "", "/"); } catch {} toast("The room owner removed you."); render(); });
 
 const nameOf = (id) => { const p = S.players.find((x) => x.id === id); return p ? p.name + (p.bot ? " (AI)" : "") : "Someone"; };
 const isOwner = () => S && S.ownerId === S.you;
 const rulesBlock = () => "";
 let soundOn = store.get("uc-sound") !== "off";
 const helpBtnRaw = `<button class="sm ghost" data-help type="button">How to play</button>`;
-const soundBtn = () => `<button class="sm ghost" data-sound type="button" aria-pressed="${soundOn}" aria-label="Sound effects ${soundOn ? "on" : "off"}">${soundOn ? "Sound on" : "Sound off"}</button>`;
-const helpBtnFn = () => `<span class="row">${soundBtn()}${helpBtnRaw}</span>`;
+const soundBtn = () => `<button class="sm ghost iconbtn" data-sound type="button" aria-pressed="${soundOn}" aria-label="Sound ${soundOn ? "on" : "off"}" title="Sound ${soundOn ? "on" : "off"}">${soundOn ? '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9.5a3.5 3.5 0 0 1 0 5M18 7a7 7 0 0 1 0 10"/></svg>' : '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>'}</button>`;
+const helpBtnFn = () => `<span class="row">${friendsBtn()}${soundBtn()}${helpBtnRaw}</span>`;
 const openRules = () => { $("#rulesM").hidden = false; $("#rulesX").focus(); };
 const closeRules = () => { $("#rulesM").hidden = true; };
 $("#rulesX").onclick = closeRules;
@@ -559,9 +630,13 @@ function render() {
   else if (!S.game || S.game.phase === "over" || (S.game.me && S.game.me.spectator && !S.players.find((p) => p.id === S.you)?.named)) room();
   else game();
   app.querySelectorAll("[data-help]").forEach((b) => (b.onclick = openRules));
+  app.querySelectorAll("[data-friends]").forEach((b) => (b.onclick = () => openSocial("friends")));
+  app.querySelectorAll("[data-contact]").forEach((b) => (b.onclick = () => openSocial("contact")));
   app.querySelectorAll("[data-sound]").forEach((b) => (b.onclick = () => { soundOn = !soundOn; store.set("uc-sound", soundOn ? "on" : "off"); if (soundOn) SFX.pop(); render(); }));
+  if (lookOpen && S && S.game && S.game.phase !== "over") app.insertAdjacentHTML("beforeend", lookCard(S.players.find((p) => p.id === S.you) || {}));
+  else lookOpen = false;
+  bindLook();
   bindSettings();
-  renderReacts();
   renderChat();
   bindChat(nearBottom);
   const back = fid && document.getElementById(fid);
@@ -578,7 +653,8 @@ function startClocks() {
       el.querySelector(".prg").style.strokeDashoffset = String(100 - Math.min(100, (ms / (total * 1000)) * 100));
       el.classList.toggle("low", s <= 5);
       if (s <= 5 && s > 0 && s !== lastTick && el.dataset.tick) { lastTick = s; SFX.tick(); }
-    } else { el.textContent = s; el.classList.toggle("low", s <= 5); }
+    } else if (el.dataset.fmt === "mmss") { el.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
+    else { el.textContent = s; el.classList.toggle("low", s <= 5); }
   });
   upd(); tick = setInterval(upd, 200);
 }
@@ -602,7 +678,8 @@ function home() {
   </div>
   ${rulesBlock()}</div>
   <aside class="side"><div class="card"><h2 style="font-size:22px">Public rooms</h2><div id="pub"><p class="muted" style="margin:8px 0 0">Looking for rooms…</p></div></div>
-</aside></div>${setModal && setModal.mode === "create" ? settingsModal() : ""}`;
+</aside></div>
+  <footer class="foot"><button type="button" class="linkbtn" data-contact>Contact us</button></footer>${setModal && setModal.mode === "create" ? settingsModal() : ""}`;
   const cd = $("#cd");
   // You pick your name once you're in the room; a name you chose before on this device is reused.
   const go = (ev, extra) => { joining = true; render(); socket.emit(ev, { ...whoAmI(), token, ...extra }); };
@@ -611,11 +688,15 @@ function home() {
     if (c.length !== 4) { cd.focus(); return toast("Room codes are 4 letters."); }
     go("join", { code: c });
   };
-  const openCreate = (visibility) => { setModal = { mode: "create", open: null, draft: { visibility, undercovers: "auto", mrWhite: false, packs: ["basic"] } }; loadPacks(); render(); };
+  const openCreate = (visibility) => { setModal = { mode: "create", open: null, draft: { visibility, undercovers: "auto", mrWhite: false, whiteHint: true, packs: ["basic"] } }; loadPacks(); render(); };
   $("#createPub").onclick = () => openCreate("public");
   $("#createPriv").onclick = () => openCreate("private");
-  createGo = (d) => go("create", { visibility: d.visibility, settings: { undercovers: d.undercovers, mrWhite: d.mrWhite, packs: d.packs } });
+  createGo = (d) => go("create", { visibility: d.visibility, settings: { undercovers: d.undercovers, mrWhite: d.mrWhite, whiteHint: d.whiteHint, packs: d.packs } });
   loadRooms(); tick = setInterval(loadRooms, 5000);
+  clearInterval(pubTick); pubTick = setInterval(() => {
+    if (S || !$("#pub")) return clearInterval(pubTick);
+    $("#pub").querySelectorAll("[data-until]").forEach((el) => { const sec = Math.max(0, Math.ceil((+el.dataset.until - Date.now()) / 1000)); el.textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`; });
+  }, 500);
   cd.addEventListener("keydown", (e) => e.key === "Enter" && $("#join").click());
 }
 
@@ -625,10 +706,20 @@ async function loadRooms() {
   let list;
   try { list = await (await fetch("api/rooms", { cache: "no-store" })).json(); } catch { return; }
   if (!$("#pub")) return;
+  const now = Date.now();
+  list = list.filter((r) => !(r.pubs || []).some((id) => blocked[id]));
   box.innerHTML = list.length
-    ? `<ul class="plist">${list.map((r) => `<li><span class="nm">${esc(r.owner)}'s room<br><span class="muted small" style="font-weight:600">${r.players}/${r.max} players${r.ai ? ` · ${r.ai} AI` : ""} · ${esc(r.packs.join(", "))}${r.mrWhite ? " · Mr. White" : ""}</span></span>
-        <span class="tag ${r.playing ? "" : "ready"}">${r.playing ? "Playing" : "Waiting"}</span>
-        <button class="sm" data-room="${esc(r.code)}">${r.playing ? "Watch" : "Join"}</button></li>`).join("")}</ul>`
+    ? `<ul class="plist rooms">${list.map((r) => {
+        const ids = r.packIds || [];
+        const title = r.owner ? `${esc(r.owner)}'s room` : esc(r.packs.join(" · "));
+        const needTxt = r.need ? `needs ${r.need} more player${r.need === 1 ? "" : "s"}` : "enough players";
+        const when = r.playing ? "Game in progress"
+          : r.startsIn != null ? `Starts in <b data-until="${now + r.startsIn}" data-fmt="mmss">${Math.floor(r.startsIn / 60000)}:${String(Math.floor(r.startsIn / 1000) % 60).padStart(2, "0")}</b> · ${needTxt}`
+          : r.need ? `Needs ${r.need} more player${r.need === 1 ? "" : "s"} to start` : "Starting soon";
+        return `<li><span class="rthumb">${packArt(ids[0])}${ids.length > 1 ? `<span class="rmore">+${ids.length - 1}</span>` : ""}</span>
+          <span class="nm">${title}<br><span class="muted small rmeta">${r.players}/${r.max} players${r.ai ? ` · ${r.ai} AI` : ""}${r.owner ? ` · ${esc(r.packs.join(", "))}` : ""}${r.mrWhite ? " · Mr. White" : ""}</span><span class="rwhen ${r.startsIn != null ? "live" : ""}">${when}</span></span>
+          <button class="sm" data-room="${esc(r.code)}">${r.playing ? "Watch" : "Join"}</button></li>`;
+      }).join("")}</ul>`
     : `<p class="muted" style="margin:8px 0 0">No public rooms right now. Create one and it will show up here.</p>`;
   box.querySelectorAll("[data-room]").forEach((b) => (b.onclick = () => {
     joining = true;
@@ -638,32 +729,38 @@ async function loadRooms() {
 
 /* ---------- room: lobby, and the screen between games ---------- */
 function room() {
-  const link = location.origin + "/?room=" + S.code;
+  const link = location.origin + "/r/" + S.code;
   const owner = isOwner(), st = S.settings;
-  const here = S.players.filter((p) => p.connected), n = here.length, readyN = here.filter((p) => p.ready).length;
+  const here = S.players.filter((p) => p.connected), n = here.length;
   const need = S.plan.need;
   const me = S.players.find((p) => p.id === S.you);
   const needName = me && (!me.named || editingName);
   const seg = (k, opts) => `<div class="seg" data-k="${k}">${opts.map(([v, l]) => `<button data-v="${v}" aria-pressed="${st[k] === v}" ${owner ? "" : "disabled"}>${l}</button>`).join("")}</div>`;
   const over = S.game?.phase === "over";
+  // No Ready button: everyone in the room plays. The game starts on the room's clock (or the owner's Start now).
+  const short = n < need ? `Needs ${need - n} more player${need - n === 1 ? "" : "s"}` : `${n} players in`;
+  const mmss = (at) => `${Math.floor(left(at) / 60)}:${String(left(at) % 60).padStart(2, "0")}`;
   let status;
-  if (S.startAt) status = `<div class="muted small" style="font-weight:800;text-align:center">Everyone's ready. Starting in</div><div class="count" data-until="${S.startAt}">${left(S.startAt)}</div>`;
-  else if (n < need) status = `<p style="margin:0 0 12px;font-weight:800">Waiting for players · ${n} of ${need} needed</p>`;
-  else status = `<p style="margin:0 0 12px;font-weight:800">${readyN} of ${n} ready. The game starts when everyone taps Ready.</p>`;
+  if (S.startAt) status = `<p class="autostart">Starting in <b data-until="${S.startAt}" data-fmt="mmss">${mmss(S.startAt)}</b><span>${short}</span></p>`;
+  else if (S.autoAt) status = `<p class="autostart">Game starts in <b data-until="${S.autoAt}" data-fmt="mmss">${mmss(S.autoAt)}</b><span>${short}</span></p>`;
+  else status = `<p class="autostart">Waiting for players<span>${short}</span></p>`;
+  const canStart = owner && n >= need && !S.startAt;
   app.innerHTML = `
-  <div class="bar"><span><img src="logo.svg" alt="" class="logo sm">${over ? "Game over" : "Lobby"} · Room <span class="code">${esc(S.code)}</span> <span class="tag ${st.visibility === "public" ? "ready" : ""}" style="vertical-align:3px">${st.visibility === "public" ? "Public" : "Private"}</span></span><span class="row"><button class="sm ghost" id="setBtn"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg> Settings</button>${helpBtnFn()}<button class="sm ghost iconbtn" id="leave" aria-label="Leave room" title="Leave room"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button></span></div>
+  <div class="bar"><span><img src="logo.svg" alt="" class="logo sm">${over ? "Game over" : "Lobby"} · Room <span class="code">${esc(S.code)}</span> <span class="tag ${st.visibility === "public" ? "ready" : ""}" style="vertical-align:3px">${st.visibility === "public" ? "Public" : "Private"}</span></span><span class="row"><button class="sm ghost" id="setBtn" aria-label="Settings"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg><span class="lbl">Settings</span></button>${helpBtnFn()}<button class="sm ghost iconbtn" id="leave" aria-label="Leave room" title="Leave room"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button></span></div>
   ${needName ? nameCard(me) : ""}
   <div class="layout solo"><div class="main">
   ${over ? overSummary() : ""}
-  <div class="card invite"><div><span class="muted small" style="font-weight:800">Invite friends · room code</span><b class="big">${esc(S.code)}</b></div><button class="sm ghost" id="copy">Copy invite link</button></div>
+  <div class="card invite"><div class="invl"><span class="muted small" style="font-weight:800">Invite link · room code <b class="code">${esc(S.code)}</b></span>
+    <button type="button" class="linkpill" id="copy" aria-label="Copy invite link"><span class="lt">${esc(link.replace(/^https?:\/\//, ""))}</span><span class="lc"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="3"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg><span id="copyTxt">Copy</span></span></button></div></div>
   <div class="card">
     ${status}
-    <button class="readybtn ${me?.ready ? "" : "lime"}" id="ready" aria-pressed="${!!me?.ready}" ${me && !me.named ? "disabled" : ""}>${me?.ready ? "✓ Ready — tap to cancel" : over ? "Ready for the next game" : "I'm ready"}</button>
+    <div class="pbar"><i style="width:${Math.min(100, (n / need) * 100)}%"></i></div>
+    ${canStart ? `<button class="startbtn" id="startNow">${over ? "Play again now" : "Start now"}</button>` : ""}
   </div>
   <div class="card">
     <h2>Players · ${n}</h2>
-    <ul class="plist">${S.players.map((p) => `<li>${avatarEl(p.avatar, "sm")}<span class="nm">${esc(p.name)}${p.id === S.you ? ` (you) ${p.named && !needName ? '<button class="linkbtn" id="editName" type="button">Edit</button>' : ""}` : ""}</span>
-      ${p.bot ? '<span class="tag ai">AI</span>' : p.connected ? (p.ready ? '<span class="tag ready">Ready</span>' : '<span class="tag">Not ready</span>') : '<span class="tag off">Offline</span>'}
+    <ul class="plist">${S.players.map((p) => `<li>${p.id === S.you && !needName ? `<button type="button" class="avbtn" id="myAv" aria-label="Change your look" title="Change your look">${avatarEl(p.avatar, "sm")}</button>` : avatarEl(p.avatar, "sm")}<span class="nm">${esc(p.name)}${p.id === S.you ? ` (you) ${p.named && !needName ? '<button class="linkbtn" id="editName" type="button">Edit</button>' : ""}` : p.pub ? friendLink(p) + `<button class="linkbtn blk" type="button" data-block="${esc(p.pub)}">Block</button>` : ""}</span>
+      ${p.bot ? '<span class="tag ai">AI</span>' : p.connected ? "" : '<span class="tag off">Offline</span>'}
       <span class="tag">${p.score} ${p.score === 1 ? "point" : "points"}</span>
       ${owner && p.id !== S.you ? `<button class="sm ghost" data-kick="${esc(p.id)}" aria-label="Remove ${esc(p.name)}">Remove</button>` : ""}</li>`).join("")}</ul>
     ${owner ? `<button class="ghost" id="addbot" style="margin-top:12px" ${S.players.length >= 16 ? "disabled" : ""}>+ Add an AI player</button>
@@ -671,17 +768,23 @@ function room() {
       : `<p class="muted small" style="margin:10px 0 0">Short on people? ${esc(nameOf(S.ownerId))} can add AI players.</p>`}
   </div>
   </div></div>${setModal && setModal.mode === "room" ? settingsModal() : ""}`;
-  $("#ready").onclick = () => socket.emit("ready", !me?.ready);
+  const sn = $("#startNow"); if (sn) sn.onclick = () => socket.emit("start");
+  app.querySelectorAll("[data-addfriend]").forEach((b) => (b.onclick = () => { const p = S.players.find((x) => x.pub === b.dataset.addfriend); if (p) addFriend(p.pub, p.name, p.avatar); }));
+  app.querySelectorAll("[data-block]").forEach((b) => (b.onclick = () => { const p = S.players.find((x) => x.pub === b.dataset.block); if (p) blockPlayer(p.pub, p.name, p.avatar); }));
   bindName();
   const ab = $("#addbot"); if (ab) ab.onclick = () => socket.emit("addBot");
-  $("#copy").onclick = async () => { try { await navigator.clipboard.writeText(link); toast("Invite link copied"); } catch { toast(link); } };
+  $("#copy").onclick = async () => {
+    let ok = true; try { await navigator.clipboard.writeText(link); } catch { ok = false; }
+    if (!ok) { const r = document.createRange(); r.selectNodeContents($("#copy .lt")); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); return toast("Press Cmd+C (or Ctrl+C) to copy"); }
+    const t = $("#copyTxt"); if (t) { t.textContent = "Copied!"; $("#copy").classList.add("done"); setTimeout(() => { const t2 = $("#copyTxt"); if (t2) { t2.textContent = "Copy"; $("#copy")?.classList.remove("done"); } }, 1600); }
+  };
   $("#leave").onclick = leave;
   app.querySelectorAll("[data-kick]").forEach((b) => (b.onclick = () => socket.emit("kick", b.dataset.kick)));
   $("#setBtn").onclick = () => { setModal = { mode: "room", open: null }; render(); };
   startClocks();
 }
 
-// Word packs as a dropdown: names with an icon on the right, Basic always on. No word counts shown.
+// Word pack icons and colours (used in the settings list).
 const PACK_ICON = {
   basic: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20v3H6.5"/>',
   sports: '<circle cx="12" cy="12" r="9"/><path d="M12 7l4 3-1.5 4.5h-5L8 10z"/><path d="M12 3v4M21 10.5l-5-.5M18 19l-3.5-4.5M6 19l3.5-4.5M3 10.5l5-.5"/>',
@@ -698,6 +801,69 @@ const PACK_ICON = {
 };
 const PACK_COLOR = { basic: "#2563eb", sports: "#ea580c", music: "#db2777", food: "#e11d48", geography: "#0891b2", history: "#a16207", science: "#7c3aed", brands: "#dc2626", memes: "#ca8a04", celebrities: "#f59e0b", movies: "#4f46e5", jobs: "#475569" };
 const packIcon = (id) => `<span class="pico" style="--pc:${PACK_COLOR[id] || "#2563eb"}"><svg viewBox="0 0 24 24" aria-hidden="true">${PACK_ICON[id] || PACK_ICON.basic}</svg></span>`;
+// Illustrated thumbnails for each word pack (120×90 scenes), used on the public room list.
+const PACK_ART = {
+  basic: `<defs><linearGradient id="gBa" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#60a5fa"/><stop offset="1" stop-color="#2563eb"/></linearGradient></defs>
+    <rect width="120" height="90" fill="url(#gBa)"/><circle cx="18" cy="16" r="26" fill="#fff" opacity=".12"/><circle cx="104" cy="80" r="30" fill="#fff" opacity=".1"/>
+    <g transform="rotate(-8 60 50)"><rect x="30" y="24" width="56" height="46" rx="5" fill="#1e3a8a"/><rect x="33" y="21" width="52" height="46" rx="4" fill="#fff"/><path d="M59 21v46" stroke="#cbd5e1" stroke-width="2"/>
+    <path d="M38 31h16M38 37h13M38 43h16M64 31h16M64 37h12M64 43h15" stroke="#94a3b8" stroke-width="2.4" stroke-linecap="round"/><rect x="38" y="50" width="16" height="10" rx="2" fill="#fbbf24"/><rect x="64" y="50" width="16" height="10" rx="2" fill="#f472b6"/></g>
+    <path d="M92 18l2.4 5 5.4.8-3.9 3.8.9 5.4-4.8-2.6-4.8 2.6.9-5.4-3.9-3.8 5.4-.8z" fill="#fde047"/>`,
+  sports: `<defs><linearGradient id="gSp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#38bdf8"/><stop offset=".62" stop-color="#7dd3fc"/><stop offset=".62" stop-color="#16a34a"/><stop offset="1" stop-color="#15803d"/></linearGradient></defs>
+    <rect width="120" height="90" fill="url(#gSp)"/><path d="M0 62h120" stroke="#fff" stroke-width="2" opacity=".7"/><path d="M60 56v34M30 90l12-28h36l12 28" stroke="#fff" stroke-width="1.6" fill="none" opacity=".55"/>
+    <rect x="8" y="34" width="26" height="22" fill="none" stroke="#fff" stroke-width="2.4"/><path d="M8 34l6 6v16M34 34l-6 6v16M14 40h14" stroke="#fff" stroke-width="1" opacity=".7"/>
+    <ellipse cx="72" cy="78" rx="13" ry="3" fill="#000" opacity=".25"/><circle cx="72" cy="62" r="14" fill="#fff" stroke="#1c1c1e" stroke-width="2"/><path d="M72 55l6.5 4.5-2.5 7.5h-8l-2.5-7.5z" fill="#1c1c1e"/><path d="M72 55v-7M78.5 59.5l6.5-2.5M76 67l4 6M68 67l-4 6M65.5 59.5l-6.5-2.5" stroke="#1c1c1e" stroke-width="1.8"/>
+    <path d="M92 50c6-4 12-4 18 0" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" opacity=".8"/><circle cx="100" cy="18" r="9" fill="#fde047"/>`,
+  music: `<defs><radialGradient id="gMu" cx=".5" cy=".4" r=".8"><stop offset="0" stop-color="#f472b6"/><stop offset="1" stop-color="#7c3aed"/></radialGradient></defs>
+    <rect width="120" height="90" fill="url(#gMu)"/><path d="M0 0l40 90M120 0L80 90" stroke="#fff" stroke-width="14" opacity=".08"/>
+    <circle cx="46" cy="50" r="30" fill="#111"/><circle cx="46" cy="50" r="22" fill="none" stroke="#333" stroke-width="1.4"/><circle cx="46" cy="50" r="15" fill="none" stroke="#333" stroke-width="1.4"/><circle cx="46" cy="50" r="9" fill="#facc15"/><circle cx="46" cy="50" r="2" fill="#111"/><path d="M28 30a26 26 0 0 1 14-8" stroke="#fff" stroke-width="2.4" opacity=".35" fill="none" stroke-linecap="round"/>
+    <path d="M86 58V26l20-5v31" stroke="#fff" stroke-width="3.4" fill="none" stroke-linejoin="round"/><ellipse cx="81" cy="59" rx="6" ry="4.6" fill="#fff" transform="rotate(-20 81 59)"/><ellipse cx="101" cy="53" rx="6" ry="4.6" fill="#fff" transform="rotate(-20 101 53)"/>
+    <circle cx="92" cy="76" r="2" fill="#fde047"/><circle cx="16" cy="14" r="2.4" fill="#fde047"/><circle cx="108" cy="12" r="1.8" fill="#fff"/>`,
+  food: `<defs><linearGradient id="gFo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fb923c"/><stop offset="1" stop-color="#ef4444"/></linearGradient></defs>
+    <rect width="120" height="90" fill="url(#gFo)"/><circle cx="60" cy="96" r="58" fill="#fff" opacity=".14"/>
+    <path d="M30 46c0-15 13-24 30-24s30 9 30 24z" fill="#f59e0b"/><path d="M36 33l2 1M48 28l2 1M62 27l2 1M76 30l2 1M84 37l2 1M54 35l2 1M70 36l2 1" stroke="#fff7ed" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M27 48c8 4 58 4 66 0l-2 6H29z" fill="#22c55e"/><rect x="27" y="52" width="66" height="9" rx="4" fill="#7c2d12"/><path d="M28 61h64l-6 6H34z" fill="#facc15"/><path d="M30 66h60c0 8-10 12-30 12S30 74 30 66z" fill="#f59e0b"/>
+    <path d="M96 24l14-10M98 30l14-4" stroke="#fde68a" stroke-width="3" stroke-linecap="round"/><circle cx="14" cy="20" r="6" fill="#fde047"/><circle cx="14" cy="20" r="2.4" fill="#ef4444"/>`,
+  geography: `<defs><linearGradient id="gGe" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0e7490"/><stop offset="1" stop-color="#155e75"/></linearGradient><radialGradient id="gGl" cx=".35" cy=".35" r=".8"><stop offset="0" stop-color="#67e8f9"/><stop offset="1" stop-color="#0284c7"/></radialGradient></defs>
+    <rect width="120" height="90" fill="url(#gGe)"/><circle cx="14" cy="16" r="1.4" fill="#fff"/><circle cx="104" cy="22" r="1.6" fill="#fff"/><circle cx="96" cy="70" r="1.2" fill="#fff"/><circle cx="22" cy="72" r="1.4" fill="#fff"/>
+    <circle cx="60" cy="45" r="30" fill="url(#gGl)"/><path d="M42 30c6-4 12-2 14 3s-3 8 1 12-2 10-8 9-6-8-10-11-2-10 3-13zM64 22c8 0 16 6 18 12-5 0-6 5-11 4s-5-6-10-8 0-8 3-8zM68 50c6-2 12 2 12 8s-6 10-10 8-6-14-2-16z" fill="#4ade80"/>
+    <ellipse cx="60" cy="45" rx="40" ry="10" fill="none" stroke="#fde047" stroke-width="2" stroke-dasharray="4 4" transform="rotate(-18 60 45)"/><path d="M93 30l8-4-2 8z" fill="#fff"/><path d="M89 32l-10 6" stroke="#fff" stroke-width="1.4" stroke-dasharray="2 2"/>`,
+  history: `<defs><linearGradient id="gHi" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fb923c"/><stop offset=".7" stop-color="#fcd34d"/><stop offset=".7" stop-color="#d97706"/><stop offset="1" stop-color="#b45309"/></linearGradient></defs>
+    <rect width="120" height="90" fill="url(#gHi)"/><circle cx="92" cy="30" r="12" fill="#fef3c7"/>
+    <path d="M18 64l26-40 26 40z" fill="#fbbf24"/><path d="M44 24l26 40H44z" fill="#d97706"/><path d="M58 64l18-26 18 26z" fill="#f59e0b"/><path d="M76 38l18 26H76z" fill="#b45309"/>
+    <path d="M24 56h40M30 48h28M36 40h16" stroke="#92400e" stroke-width="1" opacity=".35"/>
+    <path d="M100 64v-14l4-3 4 3v14" fill="#78350f"/><path d="M8 72c20-3 40-3 60 0s34 2 52-1v19H8z" fill="#92400e" opacity=".5"/><path d="M14 70c3-6 8-6 10 0" fill="#166534"/>`,
+  science: `<defs><linearGradient id="gSc" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#312e81"/><stop offset="1" stop-color="#6d28d9"/></linearGradient></defs>
+    <rect width="120" height="90" fill="url(#gSc)"/><circle cx="16" cy="14" r="1.4" fill="#fff"/><circle cx="34" cy="70" r="1.2" fill="#fff"/><circle cx="100" cy="76" r="1.6" fill="#fff"/><circle cx="108" cy="10" r="1.2" fill="#fff"/><circle cx="22" cy="40" r="1" fill="#fff"/>
+    <circle cx="94" cy="24" r="10" fill="#f472b6"/><ellipse cx="94" cy="24" rx="16" ry="4" fill="none" stroke="#fde047" stroke-width="2" transform="rotate(-20 94 24)"/>
+    <g transform="rotate(35 54 50)"><path d="M54 18c9 8 12 22 9 38H45c-3-16 0-30 9-38z" fill="#f1f5f9"/><path d="M54 18c5 4 8 9 9 15H45c1-6 4-11 9-15z" fill="#ef4444"/><circle cx="54" cy="41" r="5" fill="#38bdf8" stroke="#1e293b" stroke-width="2"/><path d="M45 47l-7 12 8-3zM63 47l7 12-8-3z" fill="#ef4444"/><path d="M49 57c1 8 3 12 5 16 2-4 4-8 5-16z" fill="#fbbf24"/><path d="M51 57c1 5 2 8 3 10 1-2 2-5 3-10z" fill="#fff7ed"/></g>`,
+  brands: `<defs><linearGradient id="gBr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fb7185"/><stop offset="1" stop-color="#e11d48"/></linearGradient></defs>
+    <rect width="120" height="90" fill="url(#gBr)"/><circle cx="100" cy="14" r="22" fill="#fff" opacity=".12"/>
+    <path d="M30 34h34l4 44H26z" fill="#fde047"/><path d="M38 34c0-10 4-14 9-14s9 4 9 14" fill="none" stroke="#1c1c1e" stroke-width="3"/><path d="M42 50l5 7 9-12" stroke="#1c1c1e" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M62 40h30l3 38H59z" fill="#fff"/><path d="M68 40c0-8 3-12 9-12s9 4 9 12" fill="none" stroke="#1c1c1e" stroke-width="3"/><circle cx="77" cy="58" r="8" fill="#2563eb"/><path d="M74 58h6M77 55v6" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M96 64l14-6-2 14z" fill="#fde047"/><text x="18" y="22" font-family="Inter,Arial" font-weight="900" font-size="12" fill="#fff">%</text>`,
+  memes: `<defs><linearGradient id="gMe" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#facc15"/><stop offset="1" stop-color="#f97316"/></linearGradient></defs>
+    <rect width="120" height="90" fill="url(#gMe)"/><path d="M0 70l120-40v60H0z" fill="#fff" opacity=".12"/>
+    <circle cx="48" cy="46" r="24" fill="#fde047" stroke="#1c1c1e" stroke-width="2.6"/><path d="M36 40c2-4 8-4 10 0M50 40c2-4 8-4 10 0" stroke="#1c1c1e" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M34 50c4 12 24 12 28 0z" fill="#1c1c1e"/><path d="M38 52h20" stroke="#fff" stroke-width="2"/>
+    <path d="M31 38c-4 4-6 10-4 14 2-2 4-2 6 0 1-5 0-10-2-14zM65 38c4 4 6 10 4 14-2-2-4-2-6 0-1-5 0-10 2-14z" fill="#38bdf8"/>
+    <rect x="76" y="18" width="34" height="22" rx="8" fill="#fff" stroke="#1c1c1e" stroke-width="2"/><path d="M84 40l-4 8 10-8" fill="#fff" stroke="#1c1c1e" stroke-width="2" stroke-linejoin="round"/><text x="93" y="34" text-anchor="middle" font-family="Inter,Arial" font-weight="900" font-size="12" fill="#1c1c1e">LOL</text>
+    <path d="M86 66l3 6 6 1-4.5 4 1 6-5.5-3-5.5 3 1-6-4.5-4 6-1z" fill="#fff"/>`,
+  celebrities: `<defs><linearGradient id="gCe" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1e1b4b"/><stop offset="1" stop-color="#4c1d95"/></linearGradient><linearGradient id="gBeam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fef9c3" stop-opacity=".7"/><stop offset="1" stop-color="#fef9c3" stop-opacity="0"/></linearGradient></defs>
+    <rect width="120" height="90" fill="url(#gCe)"/><path d="M10 0l24 90H0zM110 0L86 90h34z" fill="url(#gBeam)"/>
+    <path d="M38 90l10-30h24l10 30z" fill="#dc2626"/><path d="M42 90l8-24h20l8 24" fill="#ef4444"/>
+    <path d="M60 14l6 13 14 2-10 10 2 14-12-7-12 7 2-14-10-10 14-2z" fill="#facc15" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/>
+    <circle cx="20" cy="56" r="7" fill="#e2e8f0"/><rect x="14" y="62" width="12" height="7" rx="2" fill="#1c1c1e"/><circle cx="20" cy="56" r="3" fill="#38bdf8"/><path d="M28 50l6-4M28 56h7" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="100" cy="58" r="7" fill="#e2e8f0"/><rect x="94" y="64" width="12" height="7" rx="2" fill="#1c1c1e"/><circle cx="100" cy="58" r="3" fill="#38bdf8"/><path d="M92 52l-6-4M92 58h-7" stroke="#fff" stroke-width="2" stroke-linecap="round"/>`,
+  movies: `<defs><linearGradient id="gMo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1e293b"/><stop offset="1" stop-color="#0f172a"/></linearGradient></defs>
+    <rect width="120" height="90" fill="url(#gMo)"/><rect x="0" y="0" width="120" height="8" fill="#b91c1c"/><path d="M0 8c10 6 20 6 30 0s20-6 30 0 20 6 30 0 20-6 30 0" fill="#b91c1c"/>
+    <g transform="rotate(-10 44 50)"><rect x="18" y="42" width="52" height="34" rx="3" fill="#f8fafc"/><rect x="18" y="32" width="52" height="10" fill="#1c1c1e"/><path d="M24 32l6 10M36 32l6 10M48 32l6 10M60 32l6 10" stroke="#fff" stroke-width="3"/><path d="M24 54h40M24 62h28" stroke="#94a3b8" stroke-width="2.6" stroke-linecap="round"/></g>
+    <path d="M80 44h26l-4 36H84z" fill="#fff"/><path d="M84 44l2 36M92 44v36M100 44l-2 36" stroke="#ef4444" stroke-width="3"/>
+    <circle cx="84" cy="40" r="6" fill="#fef3c7"/><circle cx="93" cy="37" r="7" fill="#fde68a"/><circle cx="102" cy="40" r="6" fill="#fef3c7"/><circle cx="88" cy="33" r="5" fill="#fff7ed"/><circle cx="98" cy="32" r="5" fill="#fef3c7"/>`,
+  jobs: `<defs><linearGradient id="gJo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#64748b"/><stop offset="1" stop-color="#334155"/></linearGradient></defs>
+    <rect width="120" height="90" fill="url(#gJo)"/><rect x="8" y="30" width="18" height="60" fill="#475569"/><rect x="94" y="20" width="20" height="70" fill="#475569"/><path d="M12 36h4M18 36h4M12 44h4M18 44h4M12 52h4M18 52h4M98 26h4M106 26h4M98 34h4M106 34h4M98 42h4M106 42h4" stroke="#fde047" stroke-width="3"/>
+    <rect x="32" y="38" width="56" height="38" rx="6" fill="#92400e"/><path d="M50 38v-6a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4v6" fill="none" stroke="#78350f" stroke-width="4"/><rect x="32" y="50" width="56" height="5" fill="#78350f"/><rect x="55" y="48" width="10" height="9" rx="2" fill="#fbbf24"/>
+    <circle cx="96" cy="76" r="0"/><path d="M38 20l4 6M60 14v8M82 20l-4 6" stroke="#fde047" stroke-width="2.6" stroke-linecap="round"/>`,
+};
+const packArt = (id, cls = "") => `<svg class="packart ${cls}" viewBox="0 0 120 90" aria-hidden="true" preserveAspectRatio="xMidYMid slice">${(PACK_ART[id] || PACK_ART.basic).replace(/id="g(\w+)"/g, `id="g$1-${id}-${(packArt.n = (packArt.n || 0) + 1)}"`).replace(/url\(#g(\w+)\)/g, (m, k) => `url(#g${k}-${id}-${packArt.n})`)}</svg>`;
 // Room settings as a short list: tap a row to open its options. Used when creating a room
 // (everything editable, saved locally until "Create room") and from the room's Settings button
 // (the owner's changes apply right away; everyone else just sees them).
@@ -707,17 +873,18 @@ const ICO = {
   vis: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
   und: '<path d="M4 10c0-4 3.5-6 8-6s8 2 8 6v4c-2 2-3.5 2-5.3 0s-3.4-2-5.4 0-3.3 2-5.3 0z"/><circle cx="9.5" cy="17.5" r="1"/><circle cx="14.5" cy="17.5" r="1"/>',
   white: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M10 9.5a2 2 0 1 1 2.8 1.8c-.5.3-.8.7-.8 1.2V13M12 16.5h.01"/>',
+  hint: '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"/>',
   packs: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20v3H6.5"/>',
 };
 const sico = (k) => `<span class="sico"><svg viewBox="0 0 24 24" aria-hidden="true">${ICO[k]}</svg></span>`;
 function settingsModal() {
   const m = setModal, create = m.mode === "create";
   const st = create ? m.draft : S.settings, can = create || isOwner();
-  const cat = create ? PACKS || [{ id: "basic", name: "Basic", always: true }] : S.packs;
-  const on = (pk) => pk.always || st.packs.includes(pk.id);
-  const extra = st.packs.filter((id) => id !== "basic").length;
+  const cat = create ? PACKS || [{ id: "basic", name: "Basic" }] : S.packs;
+  const on = (pk) => st.packs.includes(pk.id);
+  const names = cat.filter(on).map((pk) => pk.name);
   const undVal = st.undercovers === "auto" ? (create ? "Auto" : `Auto (${S.plan.auto})`) : String(st.undercovers);
-  const packVal = extra ? `Basic + ${extra}` : "Basic";
+  const packVal = names.length <= 2 ? names.join(", ") : `${names[0]} + ${names.length - 1}`;
   const row = (k, label, val) => `<button type="button" class="srow" data-open="${k}" aria-expanded="${m.open === k}" ${can ? "" : "disabled"}>${sico(k)}<span class="sl">${label}</span><span class="sv">${val}</span>${can ? '<span class="chev" aria-hidden="true">›</span>' : ""}</button>`;
   const chips = (k, opts) => `<div class="schips">${opts.map(([v, l]) => `<button type="button" data-set="${k}" data-v="${v}" aria-pressed="${String(st[k]) === String(v)}">${l}</button>`).join("")}</div>`;
   return `<div class="modal setmodal" role="dialog" aria-modal="true" aria-labelledby="setH"><div class="card setcard">
@@ -727,8 +894,9 @@ function settingsModal() {
       ${row("und", "Undercovers", undVal)}
       ${m.open === "und" ? chips("undercovers", [["auto", "Auto"], [1, "1"], [2, "2"], [3, "3"], [4, "4"]]) : ""}
       <div class="srow ${can ? "" : "ro"}">${sico("white")}<span class="sl">Mr. White</span><button type="button" class="switch" id="mwSw" role="switch" aria-checked="${st.mrWhite}" aria-label="Mr. White" ${can ? "" : "disabled"}><i></i></button></div>
+      ${st.mrWhite ? `<div class="srow sub ${can ? "" : "ro"}">${sico("hint")}<span class="sl">Hint</span><button type="button" class="switch" id="whSw" role="switch" aria-checked="${st.whiteHint !== false}" aria-label="Hint for Mr. White" ${can ? "" : "disabled"}><i></i></button></div>` : ""}
       ${row("packs", "Word packs", packVal)}
-      ${m.open === "packs" ? `<div class="spacks">${cat.map((pk) => `<button type="button" class="spack" data-pack="${esc(pk.id)}" aria-pressed="${on(pk)}" ${pk.always ? "disabled" : ""}><span class="box" aria-hidden="true">${on(pk) ? "✓" : ""}</span><span class="ddname">${esc(pk.name)}</span>${packIcon(pk.id)}</button>`).join("")}</div>` : ""}
+      ${m.open === "packs" ? `<div class="spacks">${cat.map((pk) => `<button type="button" class="spack" data-pack="${esc(pk.id)}" aria-pressed="${on(pk)}" ${on(pk) && st.packs.length === 1 ? 'aria-disabled="true" title="Keep at least one pack"' : ""}><span class="box" aria-hidden="true">${on(pk) ? "✓" : ""}</span><span class="ddname">${esc(pk.name)}</span>${packIcon(pk.id)}</button>`).join("")}</div>` : ""}
     </div>
     <button type="button" class="alt" id="setGo" style="margin-top:20px">${create ? "Create room" : "Done"}</button>
     ${create ? '<button type="button" class="linkbtn setcancel" id="setX">Cancel</button>' : ""}
@@ -745,8 +913,10 @@ function bindSettings() {
     apply({ [b.dataset.set]: v });
   }));
   const sw = $("#mwSw"); if (sw && !sw.disabled) sw.onclick = () => apply({ mrWhite: !cur().mrWhite });
+  const wh = $("#whSw"); if (wh && !wh.disabled) wh.onclick = () => apply({ whiteHint: cur().whiteHint === false });
   box.querySelectorAll("[data-pack]:not([disabled])").forEach((b) => (b.onclick = () => {
     const id = b.dataset.pack, p = cur().packs;
+    if (p.includes(id) && p.length === 1) return; // at least one pack stays on
     apply({ packs: p.includes(id) ? p.filter((x) => x !== id) : [...p, id] });
   }));
   const close = () => { setModal = null; render(); };
@@ -758,12 +928,25 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape" && setModal
 
 // Shown inside the room until you've picked a name (and when you tap Edit).
 const curAv = (me) => (avDraft != null ? avDraft : me.avatar || 0);
+function lookCard(me) {
+  return `<div class="modal namemodal" role="dialog" aria-modal="true" aria-labelledby="lookH"><div class="card namecard">
+    <button class="sm ghost iconbtn namex" type="button" id="lookX" aria-label="Close"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>
+    <h2 id="lookH">Change your look</h2>
+    <div class="avpick" role="radiogroup" aria-label="Avatar">${AVATARS.map((a, i) => `<button type="button" role="radio" class="avopt" data-look="${i}" aria-checked="${i === (me.avatar || 0)}" aria-label="${a[0]}" title="${a[0]}">${avatarSVG(i)}</button>`).join("")}</div>
+  </div></div>`;
+}
+let lookOpen = false;
+function bindLook() {
+  const m = $("#myAv"); if (m) m.onclick = () => { if (S.game && S.game.phase !== "over") lookOpen = true; else { editingName = true; nameErr = ""; nameDraft = null; avDraft = null; } render(); };
+  const x = $("#lookX"); if (x) x.onclick = () => { lookOpen = false; render(); };
+  app.querySelectorAll("[data-look]").forEach((b) => (b.onclick = () => { const a = +b.dataset.look; store.set("uc-avatar", String(a)); socket.emit("avatar", a); lookOpen = false; render(); }));
+}
 function nameCard(me) {
   const first = !me.named;
   return `<div class="modal namemodal" role="dialog" aria-modal="true" aria-labelledby="nameH"><div class="card namecard">
     <button class="sm ghost iconbtn namex" type="button" id="${first ? "nameLeave" : "cancelName"}" aria-label="${first ? "Leave room" : "Close"}" title="${first ? "Leave room" : "Close"}"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>
     <h2 id="nameH">${first ? "Pick a look and a name" : "Change your look and name"}</h2>
-    <div class="avpick" role="radiogroup" aria-label="Avatar">${AVATARS.map((e, i) => `<button type="button" role="radio" class="avopt" data-av="${i}" aria-checked="${i === curAv(me)}" aria-label="Avatar ${i + 1}">${avatarSVG(i)}</button>`).join("")}</div>
+    <div class="avpick" role="radiogroup" aria-label="Avatar">${AVATARS.map((e, i) => `<button type="button" role="radio" class="avopt" data-av="${i}" aria-checked="${i === curAv(me)}" aria-label="${e[0]}" title="${e[0]}">${avatarSVG(i)}</button>`).join("")}</div>
     <form class="cluein" id="nameF" autocomplete="off"><input type="text" id="nameIn" maxlength="25" aria-label="Your name" autocomplete="off" autocorrect="off" spellcheck="false" value="${esc(nameDraft != null ? nameDraft : first ? "" : me.name)}"><button type="submit" class="lime">${first ? "Join the table" : "Save"}</button></form>
     ${nameErr ? `<div class="err" role="alert">${esc(nameErr)}</div>` : ""}
     <div class="row namefoot"><button class="sm ghost" type="button" id="randName">Pick a random name</button><span class="muted small" id="nameCount">0/25</span></div>
@@ -794,11 +977,11 @@ function bindName() {
 }
 
 function leave() {
-  socket.emit("leave"); S = null; setModal = null; store.set("uc-room", null); lastRoom = null;
-  try { history.replaceState(null, "", location.pathname); } catch {} render();
+  socket.emit("leave"); S = null; setModal = null; linkRoom = null; store.set("uc-room", null); lastRoom = null;
+  try { history.replaceState(null, "", "/"); } catch {} render();
 }
 
-/* ---------- effects: sounds, countdown, word card, reactions ---------- */
+/* ---------- effects: sounds, countdown, word card ---------- */
 const fx = $("#fx");
 const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 let actx = null;
@@ -831,13 +1014,21 @@ function overlay(html, ms, cls = "") {
   if (ms) setTimeout(() => d.remove(), ms);
   return d;
 }
+// Watch the room's start time; in the last 5 seconds show the big countdown with ticks.
+let cdFor = null;
+setInterval(() => {
+  if (!S || (S.game && S.game.phase !== "over")) return;
+  const at = S.startAt || S.autoAt, need = S.plan?.need || 3, n = S.players.filter((p) => p.connected).length;
+  if (!at || n < need || left(at) > 5 || left(at) <= 0 || cdFor === at) return;
+  cdFor = at; countdownOverlay(at);
+}, 200);
 function countdownOverlay(at) {
   const d = overlay('<div class="fxcount"></div>', 0, "dim");
   const n = d.querySelector(".fxcount"); let last = null;
   const t = setInterval(() => {
     const s = left(at);
     if (s !== last) { last = s; n.textContent = s > 0 ? s : "Go!"; n.classList.remove("beat"); void n.offsetWidth; n.classList.add("beat"); s > 0 ? SFX.tick() : SFX.start(); }
-    if (s <= 0 || !S || !S.startAt && !S.game) { clearInterval(t); setTimeout(() => d.remove(), 600); }
+    if (s <= 0 || !S || (!S.startAt && !S.autoAt && !S.game)) { clearInterval(t); setTimeout(() => d.remove(), 600); }
   }, 100);
 }
 function wordReveal(me) {
@@ -847,28 +1038,14 @@ function wordReveal(me) {
   setTimeout(() => d.querySelector(".flip")?.classList.add("on"), 350);
   SFX.start();
 }
-function floatReaction(emoji, name) {
-  const d = document.createElement("div"); d.className = "react";
-  d.style.left = 8 + Math.random() * 30 + "vw";
-  d.innerHTML = `<span>${esc(emoji)}</span><small>${esc(name)}</small>`;
-  fx.appendChild(d); setTimeout(() => d.remove(), 2600);
-}
-const REACTS = ["😂", "🤔", "😮", "👀", "🔥", "👏"];
-function renderReacts() {
-  const dock = $("#reactDock");
-  if (!S) { dock.innerHTML = ""; return; }
-  if (dock.childElementCount) return; // static: don't rebuild on every update
-  dock.innerHTML = REACTS.map((e) => `<button type="button" data-react="${e}" aria-label="React ${e}">${e}</button>`).join("");
-  dock.querySelectorAll("[data-react]").forEach((b) => (b.onclick = () => { socket.emit("react", b.dataset.react); b.classList.remove("bump"); void b.offsetWidth; b.classList.add("bump"); }));
-}
 // Big moments, detected by comparing the previous state with the new one.
 // Kept light: countdown + word card overlays and sounds; no banners, stamps or confetti.
 function moments(prev, st) {
   if (!prev || prev.code !== st.code) return;
   const pg = prev.game, g = st.game;
-  if (st.startAt && !prev.startAt) countdownOverlay(st.startAt);
+
   if (!g) return;
-  if (!pg || prev.gameNo !== st.gameNo) { setTimeout(() => wordReveal(g.me), 150); return; }
+  if (!pg || prev.gameNo !== st.gameNo) { rememberPlayers(st); setTimeout(() => wordReveal(g.me), 150); return; }
   if (g.clues.length > pg.clues.length) SFX.pop();
   if (g.phase === "clue" && g.round > pg.round) SFX.start();
   if (g.phase === "vote" && (pg.phase !== "vote" || (g.revote && !pg.revote))) SFX.start();
@@ -882,8 +1059,168 @@ function moments(prev, st) {
   }
 }
 
+/* ---------- friends & contact ---------- */
+// Friends are kept in this browser. The server only says who is online and passes requests and
+// invites along, using each player's public ID (never the private token).
+const PEOPLE = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14c2.2.6 3.5 2.6 3.5 6"/></svg>';
+const loadJSON = (k, d) => { try { return JSON.parse(store.get(k)) || d; } catch { return d; } };
+let blocked = loadJSON("uc-blocked", {});
+let myPub = null, friends = loadJSON("uc-friends", {}), recent = loadJSON("uc-recent", []), sentReq = loadJSON("uc-sent", {});
+let incoming = [], invites = [], presence = {}, socialTab = "friends", socialOpen = null, contactState = null;
+const saveSocial = () => { store.set("uc-blocked", JSON.stringify(blocked)); store.set("uc-friends", JSON.stringify(friends)); store.set("uc-recent", JSON.stringify(recent.slice(0, 40))); store.set("uc-sent", JSON.stringify(sentReq)); };
+const meProfile = () => { const me = S && S.players.find((p) => p.id === S.you); const w = whoAmI(); return { name: (me && me.named && me.name) || w.name || "Player", avatar: me ? me.avatar : (w.avatar || 0) }; };
+const onlineFriends = () => Object.keys(friends).filter((id) => presence[id]?.online).length;
+function friendsBtn() {
+  const n = incoming.length + invites.length, on = onlineFriends();
+  return `<button class="sm ghost frbtn" data-friends type="button" aria-label="Friends">${PEOPLE}<span class="lbl">Friends</span>${n ? `<span class="badge">${n}</span>` : on ? `<span class="dot" title="${on} online"></span>` : ""}</button>`;
+}
+function friendLink(p) {
+  if (friends[p.pub]) return '<span class="frtag">Friend</span>';
+  if (sentReq[p.pub]) return '<span class="frtag muted">Request sent</span>';
+  return `<button class="linkbtn" type="button" data-addfriend="${esc(p.pub)}">+ Add friend</button>`;
+}
+function rememberPlayers(st) { // called when a game starts: everyone you played with
+  const t = Date.now();
+  for (const p of st.players) {
+    if (!p.pub || p.id === st.you) continue;
+    recent = [{ pub: p.pub, name: p.name, avatar: p.avatar, t }, ...recent.filter((r) => r.pub !== p.pub)];
+    if (friends[p.pub]) friends[p.pub] = { name: p.name, avatar: p.avatar };
+  }
+  saveSocial();
+}
+// Blocklist: rooms with someone you blocked are hidden from your public list, and their
+// friend requests, invites and chat messages are ignored. Kept in this browser.
+function blockPlayer(pub, name, avatar) {
+  if (!pub || pub === myPub) return;
+  blocked[pub] = { name, avatar, t: Date.now() };
+  delete friends[pub]; delete sentReq[pub];
+  incoming = incoming.filter((x) => x.from !== pub); invites = invites.filter((x) => x.from !== pub);
+  saveSocial(); toast(`${name} is blocked. Undo in Friends › Blocked.`); renderNotes(); renderSocial(); render(); loadRooms();
+}
+function addFriend(pub, name, avatar) {
+  if (!pub || friends[pub] || pub === myPub) return;
+  sentReq[pub] = { name, avatar, t: Date.now() }; saveSocial();
+  socket.emit("friendRequest", { to: pub, me: meProfile() });
+  toast(`Friend request sent to ${name}`); render(); renderSocial();
+}
+socket.on("me", (d) => { myPub = d.pub; refreshPresence(); });
+socket.on("friendRequest", (d) => {
+  if (blocked[d.from]) return;
+  if (friends[d.from]) { socket.emit("friendAccept", { to: d.from, me: meProfile() }); return; } // already friends
+  if (sentReq[d.from]) return acceptFriend(d); // both asked: just be friends
+  incoming = [d, ...incoming.filter((x) => x.from !== d.from)];
+  SFX.pop(); renderNotes(); render();
+});
+socket.on("friendAccepted", (d) => {
+  friends[d.from] = { name: d.name, avatar: d.avatar }; delete sentReq[d.from]; saveSocial();
+  toast(`${d.name} is now your friend`); refreshPresence(); render(); renderSocial();
+});
+socket.on("invite", (d) => {
+  if (blocked[d.from]) return;
+  if (S && S.code === d.code) return;
+  invites = [d, ...invites.filter((x) => x.from !== d.from)].slice(0, 3);
+  SFX.pop(); renderNotes(); render();
+});
+function acceptFriend(d) {
+  friends[d.from] = { name: d.name, avatar: d.avatar }; delete sentReq[d.from]; saveSocial();
+  incoming = incoming.filter((x) => x.from !== d.from);
+  socket.emit("friendAccept", { to: d.from, me: meProfile() });
+  refreshPresence(); renderNotes(); render(); renderSocial();
+}
+function refreshPresence() {
+  const ids = Object.keys(friends); if (!ids.length || !socket.connected) return;
+  socket.emit("presence", ids, (list) => { presence = Object.fromEntries((list || []).map((x) => [x.pub, x])); renderSocial(); const b = document.querySelector("[data-friends]"); if (b) b.outerHTML = friendsBtn(), app.querySelectorAll("[data-friends]").forEach((x) => (x.onclick = () => openSocial("friends"))); });
+}
+setInterval(refreshPresence, 20000);
+const canLeave = () => !S || !S.game || S.game.phase === "over" || !S.game.alive.includes(S.you);
+function goToRoom(code) {
+  if (S && S.code === code) return;
+  if (!canLeave()) return toast("Finish this game first — you're still in it.");
+  if (S) { socket.emit("leave"); S = null; }
+  joining = true; socket.emit("join", { code, ...whoAmI(), token }); socialOpen = null; renderSocial(); render();
+}
+// Little cards in the bottom-left corner: friend requests and invites.
+function renderNotes() {
+  const box = $("#notes");
+  box.innerHTML = [
+    ...incoming.map((d) => `<div class="note"><span class="avatar emo sm">${avatarSVG(d.avatar)}</span><div class="nt"><b>${esc(d.name)}</b><span>wants to be friends</span></div>
+      <button class="sm" data-acc="${esc(d.from)}">Accept</button><button class="sm ghost iconbtn" data-dec="${esc(d.from)}" aria-label="Not now">✕</button></div>`),
+    ...invites.map((d) => `<div class="note"><span class="avatar emo sm">${avatarSVG(d.avatar)}</span><div class="nt"><b>${esc(d.name)}</b><span>invites you to room ${esc(d.code)}</span></div>
+      <button class="sm" data-goinv="${esc(d.code)}" data-from="${esc(d.from)}">Join</button><button class="sm ghost iconbtn" data-noinv="${esc(d.from)}" aria-label="Dismiss">✕</button></div>`),
+  ].join("");
+  box.querySelectorAll("[data-acc]").forEach((b) => (b.onclick = () => acceptFriend(incoming.find((x) => x.from === b.dataset.acc))));
+  box.querySelectorAll("[data-dec]").forEach((b) => (b.onclick = () => { incoming = incoming.filter((x) => x.from !== b.dataset.dec); renderNotes(); render(); }));
+  box.querySelectorAll("[data-goinv]").forEach((b) => (b.onclick = () => { invites = invites.filter((x) => x.from !== b.dataset.from); renderNotes(); goToRoom(b.dataset.goinv); }));
+  box.querySelectorAll("[data-noinv]").forEach((b) => (b.onclick = () => { invites = invites.filter((x) => x.from !== b.dataset.noinv); renderNotes(); render(); }));
+}
+function openSocial(kind) { socialOpen = kind; if (kind === "friends") refreshPresence(); if (kind === "contact") contactState = null; renderSocial(); }
+function renderSocial() {
+  const box = $("#socialM");
+  if (!socialOpen) { box.innerHTML = ""; return; }
+  const X = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>';
+  if (socialOpen === "contact") {
+    box.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-labelledby="ctH"><div class="card namecard socialcard">
+      <button class="sm ghost iconbtn namex" type="button" data-sx aria-label="Close">${X}</button>
+      <h2 id="ctH">Contact us</h2>
+      ${contactState === "sent" ? `<p class="ctdone">Thanks! Your message was sent.</p><button type="button" class="alt" data-sx>Close</button>` : `
+      <form id="ctF" class="ctform" autocomplete="on">
+        <label><span>Your name <span class="muted" style="font-weight:600">(optional)</span></span><input type="text" id="ctName" maxlength="100" autocomplete="name"></label>
+        <label><span>Your email <span class="muted" style="font-weight:600">(optional, so we can reply)</span></span><input type="email" id="ctEmail" maxlength="200" autocomplete="email"></label>
+        <label>Message<textarea id="ctMsg" rows="5" maxlength="4000" required></textarea></label>
+        ${contactState && contactState.error ? `<div class="err" role="alert">${esc(contactState.error)}</div>` : ""}
+        <button type="submit" ${contactState === "sending" ? "disabled" : ""}>${contactState === "sending" ? "Sending…" : "Send"}</button>
+      </form>`}
+    </div></div>`;
+    const f = $("#ctF");
+    if (f) f.onsubmit = async (e) => {
+      e.preventDefault();
+      const body = { name: $("#ctName").value, email: $("#ctEmail").value, message: $("#ctMsg").value };
+      contactState = "sending"; const keep = body; renderSocial(); $("#ctName").value = keep.name; $("#ctEmail").value = keep.email; $("#ctMsg").value = keep.message;
+      try {
+        const r = await fetch("api/contact", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        const j = await r.json(); contactState = r.ok ? "sent" : { error: j.error || "Couldn't send. Try again." };
+      } catch { contactState = { error: "Couldn't send. Check your connection and try again." }; }
+      renderSocial(); if (contactState !== "sent") { $("#ctName").value = keep.name; $("#ctEmail").value = keep.email; $("#ctMsg").value = keep.message; }
+    };
+  } else {
+    const fr = Object.entries(friends).map(([pub, f]) => ({ pub, ...f, st: presence[pub] || {} })).sort((a, b) => (!!b.st.online - !!a.st.online) || a.name.localeCompare(b.name));
+    const inRoom = S && S.code;
+    const frRows = fr.length ? fr.map((f) => {
+      const st = f.st, here = inRoom && st.room === S.code;
+      const status = !st.online ? "Offline" : here ? "In your room" : st.room ? (st.playing ? `Playing in room ${esc(st.room)}` : `In room ${esc(st.room)}`) : "Online";
+      const act = st.online && st.room && !here ? `<button class="sm" data-goroom="${esc(st.room)}">Join</button>` : "";
+      const inv = st.online && inRoom && !here ? `<button class="sm ghost" data-invite="${esc(f.pub)}">Invite</button>` : "";
+      return `<li><span class="avatar emo sm">${avatarSVG(f.avatar)}</span><span class="nm">${esc(f.name)}<br><span class="fst ${st.online ? "on" : ""}">${status}</span></span>${inv}${act}<button class="linkbtn rm" data-unfriend="${esc(f.pub)}">Remove</button></li>`;
+    }).join("") : '<li class="empty">No friends yet. Add people from "Played with", or from the player list in a room.</li>';
+    const rc = recent.filter((r) => !friends[r.pub] && !blocked[r.pub]).slice(0, 20);
+    const bl = Object.entries(blocked).map(([pub, b]) => ({ pub, ...b }));
+    const blRows = bl.length ? bl.map((b) => `<li><span class="avatar emo sm">${avatarSVG(b.avatar)}</span><span class="nm">${esc(b.name)}<br><span class="fst">Blocked ${ago(b.t)}</span></span><button class="sm ghost" data-unblock="${esc(b.pub)}">Unblock</button></li>`).join("")
+      : '<li class="empty">Nobody blocked. Use Block next to a player to hide their rooms and messages.</li>';
+    const rcRows = rc.length ? rc.map((r) => `<li><span class="avatar emo sm">${avatarSVG(r.avatar)}</span><span class="nm">${esc(r.name)}<br><span class="fst">Played ${ago(r.t)}</span></span>${sentReq[r.pub] ? '<span class="frtag muted">Request sent</span>' : `<button class="sm" data-addr="${esc(r.pub)}">Add friend</button>`}<button class="linkbtn rm" data-blk="${esc(r.pub)}">Block</button></li>`).join("")
+      : '<li class="empty">People you play with will show up here.</li>';
+    box.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-labelledby="frH"><div class="card namecard socialcard">
+      <button class="sm ghost iconbtn namex" type="button" data-sx aria-label="Close">${X}</button>
+      <h2 id="frH">Friends</h2>
+      <div class="seg frtabs"><button data-tab="friends" aria-pressed="${socialTab === "friends"}">Friends${fr.length ? ` · ${fr.length}` : ""}</button><button data-tab="recent" aria-pressed="${socialTab === "recent"}">Played with</button><button data-tab="blocked" aria-pressed="${socialTab === "blocked"}">Blocked${bl.length ? ` · ${bl.length}` : ""}</button></div>
+      <ul class="plist frlist">${socialTab === "friends" ? frRows : socialTab === "recent" ? rcRows : blRows}</ul>
+    </div></div>`;
+    box.querySelectorAll("[data-tab]").forEach((b) => (b.onclick = () => { socialTab = b.dataset.tab; renderSocial(); }));
+    box.querySelectorAll("[data-goroom]").forEach((b) => (b.onclick = () => goToRoom(b.dataset.goroom)));
+    box.querySelectorAll("[data-invite]").forEach((b) => (b.onclick = () => { socket.emit("invite", { to: b.dataset.invite, me: meProfile() }); b.textContent = "Invited"; b.disabled = true; }));
+    box.querySelectorAll("[data-unfriend]").forEach((b) => (b.onclick = () => { delete friends[b.dataset.unfriend]; saveSocial(); renderSocial(); render(); }));
+    box.querySelectorAll("[data-unblock]").forEach((b) => (b.onclick = () => { delete blocked[b.dataset.unblock]; saveSocial(); renderSocial(); render(); loadRooms(); }));
+    box.querySelectorAll("[data-blk]").forEach((b) => (b.onclick = () => { const r = recent.find((x) => x.pub === b.dataset.blk); if (r) blockPlayer(r.pub, r.name, r.avatar); }));
+    box.querySelectorAll("[data-addr]").forEach((b) => (b.onclick = () => { const r = recent.find((x) => x.pub === b.dataset.addr); if (r) addFriend(r.pub, r.name, r.avatar); }));
+  }
+  box.querySelectorAll("[data-sx]").forEach((b) => (b.onclick = () => { socialOpen = null; renderSocial(); }));
+  const m = box.querySelector(".modal"); if (m) m.onclick = (e) => { if (e.target === m) { socialOpen = null; renderSocial(); } };
+}
+const blockedId = (pid) => { const p = S && S.players.find((x) => x.id === pid); return !!(p && p.pub && blocked[p.pub]); };
+const ago = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? "just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; };
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && socialOpen) { socialOpen = null; renderSocial(); } });
+
 /* ---------- chat: a small dock in the corner, closed by default ---------- */
-let chatOpen = false, chatSeen = 0;
+let chatOpen = false, chatSeen = 0, chatPeek = null;
 function renderChat() {
   const dock = $("#chatDock");
   if (!S) { dock.innerHTML = ""; return; }
@@ -892,15 +1229,22 @@ function renderChat() {
   const unread = Math.max(0, msgs.length - chatSeen);
   const live = S.game && S.game.phase !== "over";
   dock.innerHTML = chatOpen ? `<div class="chatpanel" role="dialog" aria-label="Room chat">
-      <div class="chathead"><b>Chat</b><button type="button" class="sm ghost" id="chatClose" aria-label="Minimize chat">Minimize</button></div>
-      <div class="chatlog" id="chatLog" aria-live="polite">${msgs.length ? msgs.map((m) => {
+      <div class="chathead"><b>Chat</b><button type="button" class="sm ghost iconbtn" id="chatClose" aria-label="Minimize chat" title="Minimize"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 12h12" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button></div>
+      <div class="chatlog" id="chatLog" aria-live="polite">${msgs.length ? msgs.filter((m) => !blockedId(m.id)).map((m) => {
         const p = S.players.find((x) => x.id === m.id);
-        return `<p class="${m.id === S.you ? "me" : ""}"><b>${esc(m.name)}${p && p.bot ? " (AI)" : ""}</b> ${esc(m.text)}</p>`;
+        return `<p class="cmsg ${m.id === S.you ? "me" : ""}">${avatarEl(p ? p.avatar : 0, "xs")}<span><b>${esc(m.name)}${p && p.bot ? " (AI)" : ""}</b> ${esc(m.text)}</span></p>`;
       }).join("") : '<p class="muted">No messages yet. Say hi!</p>'}</div>
-      <form class="chatform" id="chatF" autocomplete="off"><input type="text" id="chatIn" maxlength="200" aria-label="Chat message" autocomplete="off" autocorrect="off" spellcheck="false" value="${esc(chatDraft)}"><button type="submit" class="lime sm">Send</button></form>
+      <form class="chatform" id="chatF" autocomplete="off"><input type="text" id="chatIn" maxlength="200" aria-label="Chat message" autocomplete="off" autocorrect="off" spellcheck="false" value="${esc(chatDraft)}"><button type="submit" class="sm">Send</button></form>
       ${chatErr ? `<div class="err" role="alert">${esc(chatErr)}</div>` : live ? '<p class="muted small chatnote">Secret words and anything close to them are blocked.</p>' : ""}
     </div>`
-    : `<button type="button" class="chatpill" id="chatOpenBtn" aria-label="Open chat${unread ? `, ${unread} new` : ""}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12z"/></svg>Chat${unread ? `<span class="badge">${unread > 9 ? "9+" : unread}</span>` : ""}</button>`;
+    : (() => {
+        const last = msgs.filter((m) => !blockedId(m.id)).pop();
+        const fresh = last && last.t !== chatPeek; chatPeek = last ? last.t : null;
+        return `<button type="button" class="chatcard ${unread ? "unread" : ""} ${fresh && unread ? "pop" : ""}" id="chatOpenBtn" aria-label="Open chat${unread ? `, ${unread} new` : ""}">
+          <span class="cico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12z"/></svg>${unread ? `<span class="badge">${unread > 9 ? "9+" : unread}</span>` : ""}</span>
+          <span class="ctext"><b>Chat</b><span>${last ? `${esc(last.name)}: ${esc(last.text)}` : "No messages yet"}</span></span>
+          <span class="cup" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 15l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>`;
+      })();
 }
 function bindChat(stick) {
   const o = $("#chatOpenBtn"); if (o) o.onclick = () => { chatOpen = true; render(); $("#chatIn")?.focus(); };
@@ -926,7 +1270,7 @@ function idCard() {
   const me = S.game.me;
   if (me.spectator) return `<div class="idcard spec"><div><div class="lbl">You joined mid-game</div><div class="w" style="font-size:22px">Watching this one</div></div></div>`;
   const out = !S.game.alive.includes(S.you);
-  if (me.white) return `<div class="idcard white"><div class="idrole">${roleLogo("white")}</div><div style="flex:1"><div class="lbl">${out ? "You're out · " : ""}Your role</div><div class="w">${hideWord ? "• • • •" : "Mr. White"}</div><div class="lbl">${hideWord ? "" : me.hint ? `You go first, so here's a hint · Category: <span style="color:var(--pink)">${esc(me.hint)}</span>` : "No word. Listen, blend in, guess it."}</div></div><button id="hide">${hideWord ? "Show" : "Hide"}</button></div>`;
+  if (me.white) return `<div class="idcard white"><div class="idrole">${roleLogo("white")}</div><div style="flex:1"><div class="lbl">${out ? "You're out · " : ""}Your role</div><div class="w">${hideWord ? "• • • •" : "Mr. White"}</div><div class="lbl">${hideWord ? "" : me.hint ? `Hint: <span style="color:var(--pink)">${esc(me.hint)}</span>` : "No word. Listen, blend in, guess it."}</div></div><button id="hide">${hideWord ? "Show" : "Hide"}</button></div>`;
   return `<div class="idcard"><div><div class="lbl">${out ? "You're out · " : ""}Your word</div><div class="w">${hideWord ? "• • • •" : esc(me.word)}</div></div><button id="hide">${hideWord ? "Show" : "Hide"}</button></div>`;
 }
 
@@ -960,7 +1304,7 @@ function playerTable() {
     const canVote = voting && g.targets.includes(p.id), mine = g.myVote === p.id;
     return `<li class="pcard ${out ? "out" : ""} ${typing ? "cur" : ""} ${mine ? "picked" : ""}">
       <div class="ptop">
-        ${out ? `<span class="avatar rlav">${roleLogo(g.outRoles?.[p.id] || "civ")}</span>` : avatarEl(p.avatar)}
+        ${out ? `<span class="avatar rlav">${roleLogo(g.outRoles?.[p.id] || "civ")}</span>` : (p.id === S.you ? `<button type="button" class="avbtn" id="myAv" aria-label="Change your look" title="Change your look">${avatarEl(p.avatar)}</button>` : avatarEl(p.avatar))}
         <div class="pinfo">
           <div class="pname"><b>${esc(p.name)}</b>${p.id === S.you ? '<span class="tag you">You</span>' : ""}${p.bot ? '<span class="tag ai">AI</span>' : ""}${!p.bot && !p.connected ? '<span class="tag off">Offline</span>' : ""}${typing ? '<span class="tag turn">Speaking</span>' : ""}${out ? `<span class="tag out">Out · ${roleName(g.outRoles?.[p.id])}</span>` : ""}</div>
           <div class="pword">${big}</div>
@@ -970,15 +1314,18 @@ function playerTable() {
       ${earlier.length ? `<div class="earlier"><span>Earlier:</span> ${earlier.map((w) => `<b>${w}</b>`).join('<i>/</i>')}</div>` : ""}
     </li>`;
   }).join("");
-  return `<div class="card"><h2 style="font-size:22px">Players · ${g.alive.length} still in</h2><ul class="ptable">${rows}</ul></div>`;
+  const L = g.left || { und: 0, white: 0 };
+  const chips = `<span class="gchip">${L.und} Undercover${L.und === 1 ? "" : "s"} left</span>${L.white ? '<span class="gchip">Mr. White still in</span>' : ""}<span class="gchip">Round ${g.round}</span>`;
+  return `<div class="card"><div class="ghead"><h2 style="font-size:22px">Players · ${g.alive.length} still in</h2><div class="gchips">${chips}</div></div><ul class="ptable">${rows}</ul></div>`;
 }
 
 function game() {
   const g = S.game;
-  const top = `<div class="bar"><span><img src="logo.svg" alt="" class="logo sm">Room <span class="code">${esc(S.code)}</span> · Round ${g.round}</span>${helpBtnFn()}</div>`;
+  const top = `<div class="bar"><span><img src="logo.svg" alt="" class="logo sm">Room <span class="code">${esc(S.code)}</span></span><span class="row">${helpBtnFn()}${!g.alive.includes(S.you) ? `<button class="sm ghost iconbtn" id="leave" aria-label="Leave room" title="Leave room"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>` : ""}</span></div>`;
   const body = ({ clue: cluePhase, vote: votePhase, result: resultPhase, whiteguess: whitePhase })[g.phase]();
   app.innerHTML = top + `<div class="layout"><div class="main">${idCard()}${body}</div><aside class="side">${playerTable()}</aside></div>`;
   const h = $("#hide"); if (h) h.onclick = () => { hideWord = !hideWord; render(); };
+  const lv = $("#leave"); if (lv) lv.onclick = leave;
   bind[g.phase] && bind[g.phase]();
   startClocks();
 }
@@ -1060,6 +1407,7 @@ function roleLogo(role, cls = "") {
   if (role === "und") return `<svg class="rl rl-und ${cls}" viewBox="0 0 64 64" aria-hidden="true">
     <rect width="64" height="64" rx="16" fill="#2563eb"/>
     ${face(25.5, 38.5, 45, 52.5, "#bfdbfe", "smirk")}
+    <g class="ex"><circle cx="24.5" cy="29" r="5.2" fill="#fff" stroke="${INK}" stroke-width="2.2"/><circle cx="39.5" cy="29" r="5.2" fill="#fff" stroke="${INK}" stroke-width="2.2"/><circle cx="25" cy="29.5" r="2.2" fill="${INK}"/><circle cx="40" cy="29.5" r="2.2" fill="${INK}"/><path d="M19 20.5l6 2M45 20.5l-6 2" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/><ellipse cx="32" cy="43" rx="3.6" ry="4.4" fill="${INK}"/><path d="M50 18c-2 3-3 5-1 7s4 0 3-2-1-3-2-5z" fill="#bfdbfe" stroke="${INK}" stroke-width="1.4"/></g>
     <g class="cover"><g transform="translate(0 3)" opacity=".35">${cover(6, 32, "#1e3a8a", "none")}</g>${cover(6, 32, INK, "#4b5563")}</g></svg>`;
   if (role === "white") return `<svg class="rl rl-white ${cls}" viewBox="0 0 64 64" aria-hidden="true">
     <rect width="64" height="64" rx="16" fill="#e5e5e2"/>
@@ -1095,10 +1443,9 @@ function overSummary() {
   const you = mine ? `<p class="endyou">${won ? "You were on the winning side." : "Your side lost this one."}</p>` : "";
   const ranked = S.players.slice().sort((a, b) => b.score - a.score);
   const max = Math.max(1, ...ranked.map((p) => p.score));
-  // Civilians: a crowd celebrating, caps flying. Undercover: one smirk. Mr. White: an escape.
-  const civCount = 5;
+  // Civilians: two villagers high-five. Undercover: a smirk. Mr. White: an escape.
   const heroArt = kind === "civ"
-    ? `<div class="endart crowd">${Array.from({ length: civCount }, (_, i) => `<span style="--i:${i}">${roleLogo("civ", "happy party")}</span>`).join("")}</div>`
+    ? `<div class="endart hf"><div class="m l">${roleLogo("civ", "happy")}<span class="hand"></span></div><div class="m r">${roleLogo("civ", "happy")}<span class="hand"></span></div><div class="burst">${[0, 45, 90, 135, 180, 225, 270, 315].map((a) => `<i style="--a:${a}deg"></i>`).join("")}</div></div>`
     : `<div class="endart">${roleLogo(kind, "hero happy" + (kind === "white" ? " escape" : ""))}</div>`;
   // The win animation plays once per game; later redraws (people tapping Ready) keep it still.
   const key = S.code + ":" + S.gameNo, seen = endShown[key] && Date.now() - endShown[key] > 4000;
