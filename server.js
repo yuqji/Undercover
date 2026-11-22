@@ -373,7 +373,7 @@ function scheduleDrop(room, p) {
 function view(room, pid) {
   const g = room.game;
   const players = sortedPlayers(room).map((p) => ({
-    id: p.id, name: p.name, connected: p.connected, score: p.score, ready: p.ready, bot: !!p.bot,
+    id: p.id, name: p.name, named: !!(p.named || p.bot), connected: p.connected, score: p.score, ready: p.ready, bot: !!p.bot,
     inGame: !!(g && p.id in g.roles), alive: !!(g && g.alive.includes(p.id)),
   }));
   const here = players.filter((p) => p.connected).length;
@@ -481,32 +481,35 @@ io.on("connection", (socket) => {
     broadcast(room);
   }
 
-  function seat(room, token, name) {
-    const p = { id: token, name, connected: true, sockets: new Set(), score: 0, joinedAt: Date.now(), ready: false, dropTimer: null };
+  // Take a seat. People pick their name after they're in the room: until then they get a placeholder
+  // ("Player 3") and can't Ready up. A name remembered on their device is used straight away.
+  const nameTaken = (room, n, except) => [...room.players.values()].some((x) => x.id !== except && x.name.toLowerCase() === n.toLowerCase());
+  function freeName(room, base) {
+    if (!nameTaken(room, base)) return base;
+    let k = 2; while (nameTaken(room, `${base.slice(0, 15)} ${k}`)) k++;
+    return `${base.slice(0, 15)} ${k}`;
+  }
+  function seat(room, token, rawName) {
+    const wanted = cleanName(rawName);
+    let name = wanted ? freeName(room, wanted) : null;
+    if (!name) { let k = room.players.size + 1; while (nameTaken(room, "Player " + k)) k++; name = "Player " + k; }
+    const p = { id: token, name, named: !!wanted, connected: true, sockets: new Set(), score: 0, joinedAt: Date.now(), ready: false, dropTimer: null };
     room.players.set(token, p);
     return p;
   }
 
-  socket.on("create", ({ name, token } = {}) => {
-    name = cleanName(name);
-    if (!name) return fail("Enter your name first.");
+  // Public or private is chosen when the room is created and stays that way.
+  socket.on("create", ({ name, token, visibility } = {}) => {
     if (!token || typeof token !== "string" || token.length > 80) return fail("Refresh the page and try again.");
     const room = makeRoom(token);
+    room.settings.visibility = visibility === "public" ? "public" : "private";
     rooms.set(room.code, room);
     attach(room, seat(room, token, name));
   });
 
-  function joinRoom(room, name, token, autoRename) {
+  function joinRoom(room, name, token) {
     const back = room.players.get(token);
     if (back) return attach(room, back); // reconnect: same seat, same word
-    name = cleanName(name);
-    if (!name) return fail("Enter your name first.");
-    const taken = (n) => [...room.players.values()].some((x) => x.name.toLowerCase() === n.toLowerCase());
-    if (taken(name)) {
-      if (!autoRename) return fail(`Someone in this room is already called ${name}. Add an initial?`);
-      let k = 2; while (taken(`${name.slice(0, 15)} ${k}`)) k++;
-      name = `${name.slice(0, 15)} ${k}`;
-    }
     if (room.players.size >= MAX_PLAYERS) return fail("This room is full (16 players).");
     attach(room, seat(room, token, name));
   }
@@ -517,24 +520,40 @@ io.on("connection", (socket) => {
     const room = rooms.get(code);
     if (!room) return fail(`No room called ${code || "that"}. Check the code and try again.`);
     if (badToken(token)) return fail("Refresh the page and try again.");
-    joinRoom(room, name, token, false);
+    joinRoom(room, name, token);
   });
 
   // Quick join: the best waiting public room, or a fresh public room if there is none.
   socket.on("quickJoin", ({ name, token } = {}) => {
     if (badToken(token)) return fail("Refresh the page and try again.");
-    if (!cleanName(name)) return fail("Enter your name first.");
     const room = publicRooms().find((r) => inLobby(r));
-    if (room) return joinRoom(room, name, token, true);
+    if (room) return joinRoom(room, name, token);
     const fresh = makeRoom(token);
     fresh.settings.visibility = "public";
     rooms.set(fresh.code, fresh);
-    attach(fresh, seat(fresh, token, cleanName(name)));
+    attach(fresh, seat(fresh, token, name));
+  });
+
+  // Pick or change your name. Allowed between games (and while watching), not mid-game.
+  socket.on("rename", (raw, ack) => {
+    const reply = typeof ack === "function" ? ack : () => {};
+    const { room, p } = ctx();
+    if (!room || !p) return reply({ error: "You're not in a room." });
+    if (room.game && !inLobby(room) && p.id in room.game.roles) return reply({ error: "You can change your name after this game." });
+    const name = cleanName(raw);
+    if (!name) return reply({ error: "Type a name first." });
+    if (nameTaken(room, name, p.id)) return reply({ error: `Someone here is already called ${name}. Add an initial?` });
+    p.name = name;
+    p.named = true;
+    for (const m of room.chat) if (m.id === p.id) m.name = name;
+    reply({ ok: true, name });
+    broadcast(room);
   });
 
   socket.on("ready", (on) => {
     const { room, p } = ctx();
     if (!room || !p || !inLobby(room)) return;
+    if (on && !p.named) return fail("Pick your name first.");
     p.ready = !!on;
     checkAutoStart(room);
     broadcast(room);
@@ -550,7 +569,6 @@ io.on("connection", (socket) => {
       room.settings.packs = ["basic", ...new Set(valid.filter((id) => id !== "basic"))]; // Basic is always on
     }
     const gameplay = "undercovers" in s || "mrWhite" in s || "packs" in s;
-    if (["public", "private"].includes(s.visibility)) room.settings.visibility = s.visibility;
     // A gameplay change resets Ready so nobody starts a game they didn't agree to (AI players stay ready).
     if (gameplay) for (const x of room.players.values()) x.ready = !!x.bot;
     checkAutoStart(room);

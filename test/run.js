@@ -142,9 +142,22 @@ async function main() {
 
   const dupe = phone("Dupe", "tok-x");
   await until(() => dupe.s.connected, "dupe");
-  dupe.s.emit("join", { code, name: "maya", token: "tok-x" });
-  await until(() => dupe.problems.length, "dupe name");
-  ok("duplicate name is rejected", () => assert.match(dupe.problems[0], /already called/));
+  dupe.s.emit("join", { code, token: "tok-x" });
+  await until(() => dupe.state, "nameless join");
+  ok("you can enter a room before picking a name (placeholder shown)", () => {
+    const me = dupe.state.players.find((p) => p.id === "tok-x");
+    assert.ok(!me.named && /^Player \d+$/.test(me.name));
+  });
+  dupe.s.emit("ready", true);
+  await until(() => dupe.problems.some((m) => /Pick your name/.test(m)), "ready blocked");
+  ok("can't Ready up until you've picked a name", () => assert.ok(!dupe.state.players.find((p) => p.id === "tok-x").ready));
+  let rn = await emitAck(dupe, "rename", "maya");
+  ok("a name already in the room is refused", () => assert.match(rn.error, /already called/));
+  rn = await emitAck(dupe, "rename", "Dee");
+  await until(() => P[0].state.players.some((p) => p.name === "Dee" && p.named), "renamed");
+  ok("picking a free name works and shows for everyone", () => assert.ok(P[0].state.players.some((p) => p.name === "Dee" && p.named)));
+  dupe.s.emit("leave");
+  await until(() => P[0].state.players.length === 5, "dee left");
   dupe.s.close();
 
   P[1].s.emit("settings", { mrWhite: true });
@@ -353,26 +366,26 @@ async function main() {
   await until(() => X.state, "quick create");
   ok("quick join with no open public room creates a public one", () => assert.equal(X.state.settings.visibility, "public"));
   let list = await api();
-  ok("public room shows up in the list", () => assert.ok(list.some((r) => r.code === X.state.code && r.owner === "Xena" && !r.playing)));
+  ok("public room shows up in the list", () => assert.ok(list.some((r) => r.code === X.state.code && !r.playing)));
   Y.s.emit("quickJoin", { name: "xena", token: Y.token });
   await until(() => Y.state, "quick join");
   ok("quick join drops you into the open public room (and fixes a clashing name)", () => {
     assert.equal(Y.state.code, X.state.code);
     assert.ok(Y.state.players.some((p) => p.name === "xena 2"));
   });
-  Y.s.emit("ready", true);
-  await until(() => X.state.players.find((p) => p.id === Y.token)?.ready, "y ready");
   X.s.emit("settings", { visibility: "private" });
-  await until(() => X.state.settings.visibility === "private", "to private");
-  ok("switching room type doesn't reset Ready", () => assert.ok(X.state.players.find((p) => p.id === Y.token).ready));
+  await wait(60);
+  ok("room type can't be changed after creating the room", () => assert.equal(X.state.settings.visibility, "public"));
+  const Q = phone("Quinn");
+  await until(() => Q.s.connected, "quinn");
+  Q.s.emit("create", { token: Q.token, name: "Quinn", visibility: "private" });
+  await until(() => Q.state, "private create");
   list = await api();
-  ok("a room made private disappears from the list", () => assert.ok(!list.some((r) => r.code === X.state.code)));
+  ok("a room created as private is never listed", () => assert.ok(Q.state.settings.visibility === "private" && !list.some((r) => r.code === Q.state.code)));
+  Q.s.emit("leave"); Q.s.close();
   Z.s.emit("join", { code: X.state.code, name: "Zed", token: Z.token });
   await until(() => Z.state, "z by code");
-  ok("private rooms still work by code", () => assert.equal(Z.state.code, X.state.code));
-  Y.s.emit("settings", { visibility: "public" });
-  await wait(50);
-  ok("only the owner can change room type", () => assert.equal(X.state.settings.visibility, "private"));
+  ok("any room still works by code", () => assert.equal(Z.state.code, X.state.code));
 
   console.log("Chat");
   X.s.emit("chat", "hi all"); 
