@@ -212,11 +212,11 @@ function removePlayer(room, id) {
 
 /* ---------- house rooms: public rooms that are always there to join ---------- */
 // So the home page never shows an empty list, the server keeps PUBLIC_POOL open public rooms
-// waiting for players, each with a random mix of word packs. The first person in runs it.
+// waiting for players, each with one random word pack. The first person in runs it.
 const PUBLIC_POOL = Number(process.env.PUBLIC_POOL ?? 3);
 function randomPacks() {
   const ids = Object.keys(WORDS.PACKS).sort(() => Math.random() - 0.5);
-  return ids.slice(0, 1 + Math.floor(Math.random() * 3)); // 1 to 3 packs
+  return ids.slice(0, 1); // one theme per house room
 }
 function makeHouseRoom() {
   const room = makeRoom(null);

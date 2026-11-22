@@ -358,10 +358,10 @@ async function main() {
   const api = async () => (await fetch(url + "/api/rooms")).json();
   const before = await api();
   ok("private rooms are never listed", () => assert.ok(!before.some((r) => r.code === code)));
-  ok("there are always 3 open house rooms to join, each with 1–3 word packs", () => {
+  ok("there are always 3 open house rooms to join, each with one word pack", () => {
     const house = before.filter((r) => r.house && !r.playing);
     assert.ok(house.length >= 3);
-    assert.ok(house.every((r) => r.packs.length >= 1 && r.packs.length <= 3));
+    assert.ok(house.every((r) => r.packs.length === 1));
   });
   ok("empty house rooms already show a 3-minute start clock", () => assert.ok(before.filter((r) => r.house && !r.players).every((r) => r.startsIn > 0 && r.startsIn <= 180 * 1000 * 0.02)));
   {

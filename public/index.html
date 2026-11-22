@@ -6,8 +6,14 @@
 <meta name="theme-color" content="#f4f4f2">
 <base href="/">
 <title>Undercover</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
-<meta property="og:image" content="logo.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta property="og:image" content="/icon-512.png">
+<meta property="og:title" content="Undercover">
+<meta name="description" content="One of you has a slightly different word. Find them. A free online party word game.">
 <meta name="theme-color" content="#2563eb">
 <link rel="stylesheet" href="fonts/fonts.css">
 <style>
@@ -40,7 +46,8 @@ button.ghost{background:transparent;color:var(--ink);border:2px solid var(--line
 button.lime{background:var(--lime);color:var(--onlime)}
 button.sm{min-height:40px;font-size:14px;padding:8px 14px;width:auto}
 button:disabled{opacity:.45;cursor:not-allowed}
-button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-offset:2px}
+button:focus-visible{outline:3px solid var(--lime);outline-offset:2px}
+input:focus,textarea:focus{outline:none;border-color:var(--pink)!important;box-shadow:0 0 0 3px rgba(37,99,235,.22)}
 .stack>*+*{margin-top:12px}
 .or{display:flex;align-items:center;gap:10px;color:var(--soft);font-weight:700;margin:18px 0}
 .or:before,.or:after{content:"";flex:1;height:2px;background:var(--line)}
