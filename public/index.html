@@ -335,20 +335,12 @@ function home() {
     <div><label for="cd">Have a room code?</label><input type="text" id="cd" class="codein" maxlength="4" autocomplete="off" value="${esc(lastRoom || "")}" placeholder="ABCD"></div>
     <button id="join" ${joining ? "disabled" : ""}>Join with code</button>
     <div class="or">or</div>
-    <button id="quick" class="lime" ${joining ? "disabled" : ""}>Quick join a public game</button>
     <div class="two"><button id="createPub" class="alt" ${joining ? "disabled" : ""}>Create a public room</button><button id="createPriv" class="alt" ${joining ? "disabled" : ""}>Create a private room</button></div>
     <p class="muted small" style="margin:0">Public rooms are listed for anyone to join. Private rooms are only for people with your code or link.</p>
   </div>
   ${rulesBlock()}</div>
   <aside class="side"><div class="card"><h2 style="font-size:22px">Public rooms</h2><div id="pub"><p class="muted" style="margin:8px 0 0">Looking for rooms…</p></div></div>
-  <div class="card"><h2 style="font-size:22px">How it works</h2>
-    <ol class="rules" style="margin-top:10px">
-      <li>Everyone gets a secret word — except the <b>Undercover</b>, who gets a similar one and doesn't know it.</li>
-      <li>Take turns typing <b>one word</b> that describes your word.</li>
-      <li><b>Vote</b> out who seems different. Votes are secret.</li>
-      <li>Civilians win by finding the Undercover. The Undercover wins by surviving.</li>
-    </ol>
-    <button class="sm ghost" data-help type="button" style="margin-top:12px">Full rules</button></div></aside></div>`;
+</aside></div>`;
   const cd = $("#cd");
   // You pick your name once you're in the room; a name you chose before on this device is reused.
   const go = (ev, extra) => { joining = true; render(); socket.emit(ev, { name: store.get("uc-myname") || "", token, ...extra }); };
@@ -359,7 +351,6 @@ function home() {
   };
   $("#createPub").onclick = () => go("create", { visibility: "public" });
   $("#createPriv").onclick = () => go("create", { visibility: "private" });
-  $("#quick").onclick = () => go("quickJoin");
   loadRooms(); tick = setInterval(loadRooms, 5000);
   cd.addEventListener("keydown", (e) => e.key === "Enter" && $("#join").click());
 }
@@ -374,7 +365,7 @@ async function loadRooms() {
     ? `<ul class="plist">${list.map((r) => `<li><span class="nm">${esc(r.owner)}'s room<br><span class="muted small" style="font-weight:600">${r.players}/${r.max} players${r.ai ? ` · ${r.ai} AI` : ""} · ${esc(r.packs.join(", "))}${r.mrWhite ? " · Mr. White" : ""}</span></span>
         <span class="tag ${r.playing ? "" : "ready"}">${r.playing ? "Playing" : "Waiting"}</span>
         <button class="sm" data-room="${esc(r.code)}">${r.playing ? "Watch" : "Join"}</button></li>`).join("")}</ul>`
-    : `<p class="muted" style="margin:8px 0 0">No public rooms right now. Create a public room or tap Quick join.</p>`;
+    : `<p class="muted" style="margin:8px 0 0">No public rooms right now. Create one and it will show up here.</p>`;
   box.querySelectorAll("[data-room]").forEach((b) => (b.onclick = () => {
     joining = true;
     socket.emit("join", { code: b.dataset.room, name: store.get("uc-myname") || "", token });
