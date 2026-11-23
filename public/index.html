@@ -487,6 +487,7 @@ button:active{transform:scale(.96)}
 .turnno{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:800;background:var(--bg);color:var(--soft)}
 .turnno.now{background:var(--pink);color:#fff}.turnno.done{background:var(--ink);color:#fff}.turnno.blank{background:none}
 .brand{display:flex;align-items:center;gap:12px}.logo{width:44px;height:44px;border-radius:11px;flex:none}.logo.sm{width:26px;height:26px;border-radius:7px;vertical-align:-7px;margin-right:10px}
+.timesup{margin-top:14px;padding:14px 16px;border-radius:14px;background:#fdecec;color:#c0392b;font-weight:800;text-align:center}
 </style>
 </head>
 <body>
@@ -672,7 +673,10 @@ function startClocks() {
     } else if (el.dataset.fmt === "mmss") { el.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
     else { el.textContent = s; el.classList.toggle("low", s <= 5); }
   });
-  upd(); tick = setInterval(upd, 200);
+  // Your clue turn ran out: lock the box and say so until the server moves on.
+  const skipNow = () => { const f = $("#clueF"), r = app.querySelector(".ring[data-until]");
+    if (f && r && left(+r.dataset.until) <= 0) { f.outerHTML = '<div class="timesup">Time\'s up — skipped</div>'; const h = app.querySelector(".cluein ~ .hint, .card .hint, .card .err"); if (h) h.remove(); } };
+  upd(); skipNow(); tick = setInterval(() => { upd(); skipNow(); }, 200);
 }
 // Countdown ring. `total` is the phase length in seconds; `ticks` plays the last-5-seconds tick.
 const clock = (at, total = 30, ticks = false) => (at ? `<div class="ring" data-until="${at}" data-total="${total}" ${ticks ? 'data-tick="1"' : ""} role="timer" aria-label="Seconds left"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="trk" cx="22" cy="22" r="19"/><circle class="prg" cx="22" cy="22" r="19" pathLength="100"/></svg><span>${left(at)}</span></div>` : "");
@@ -1388,7 +1392,7 @@ function clueBoard(title = "Clues so far") {
   if (!g.clues.length) return "";
   const rounds = [...new Set(g.clues.map((c) => c.round))].reverse();
   return `<div class="card"><h2 style="font-size:22px;margin-bottom:8px">${title}</h2>${rounds.map((r) => `<div class="rnd">Round ${r}</div><ul class="clues">${g.clues.filter((c) => c.round === r).map((c) =>
-    `<li><span>${esc(nameOf(c.id))}</span>${c.word ? `<b>${esc(c.word)}</b>` : '<span class="pass">ran out of time</span>'}</li>`).join("")}</ul>`).join("")}</div>`;
+    `<li><span>${esc(nameOf(c.id))}</span>${c.word ? `<b>${esc(c.word)}</b>` : '<span class="pass">Skipped</span>'}</li>`).join("")}</ul>`).join("")}</div>`;
 }
 
 // The table: one row per player — their latest clue big, earlier clues underneath, Vote on the right.
@@ -1415,9 +1419,9 @@ function playerTable() {
     // Big text = this round's clue; clues from earlier rounds go in the "Earlier" line.
     const now = mineClues.find((c) => c.round === g.round);
     const big = typing ? '<span class="typing">typing<i>.</i><i>.</i><i>.</i></span>'
-      : now ? `<span class="${fresh ? "pop" : ""}">${now.word ? esc(now.word) : '<span class="pass">no clue</span>'}</span>`
+      : now ? `<span class="${fresh ? "pop" : ""}">${now.word ? esc(now.word) : '<span class="pass">Skipped</span>'}</span>`
       : out ? '<span class="pass">—</span>' : '<span class="pass">waiting for turn</span>';
-    const earlier = mineClues.filter((c) => c.round !== g.round).map((c) => (c.word ? esc(c.word) : "—"));
+    const earlier = mineClues.filter((c) => c.round !== g.round).map((c) => (c.word ? esc(c.word) : "Skipped"));
     const canVote = voting && g.targets.includes(p.id), mine = g.myVote === p.id;
     return `<li class="pcard ${out ? "out" : ""} ${typing ? "cur" : ""} ${mine ? "picked" : ""}">
       <div class="ptop">
