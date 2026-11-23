@@ -18,10 +18,13 @@ ok("allows fair clues", () => {
     assert.equal(R.checkClue(clue, word).word, clue);
 });
 ok("one word only, no symbols, no repeats", () => {
-  assert.match(R.checkClue("big cat", "Tiger").error, /One word/);
+  assert.equal(R.checkClue("big  striped cat", "Tiger").word, "big striped cat");
+  assert.match(R.checkClue("a fierce tiger", "Tiger").error, /gives away/);
+  assert.match(R.checkClue("cold ice cream", "Ice cream").error, /gives away/);
   assert.match(R.checkClue("  ", "Tiger").error, /Type a clue/);
   assert.match(R.checkClue("🐯", "Tiger").error, /Letters only/);
-  assert.match(R.checkClue("a".repeat(21), "Tiger").error, /under 20/);
+  assert.match(R.checkClue("a".repeat(21), "Tiger").error, /20 characters/);
+  assert.equal(R.checkClue("a".repeat(20), "Tiger").word, "a".repeat(20));
   assert.match(R.checkClue("Stripes", "Tiger", ["stripes"]).error, /already used/);
   assert.equal(R.checkClue("don't", "Tiger").word, "don't");
   assert.equal(R.checkClue("well-known", "Tiger").word, "well-known");
@@ -64,9 +67,8 @@ ok("setup minimums", () => {
   assert.equal(R.checkSetup(5, { undercovers: 1, mrWhite: true }), null);
   assert.ok(R.checkSetup(4, { undercovers: 2, mrWhite: false }));
 });
-ok("every pack has enough words, Basic is always on", () => {
+ok("every pack has enough words", () => {
   for (const p of WORDS.CATALOG) assert.ok(p.count >= 20, p.id + " has " + p.count);
-  assert.ok(WORDS.CATALOG.find((p) => p.id === "basic").always);
 });
 ok("no word is used in two different pairs", () => {
   const seen = new Map();
@@ -112,6 +114,7 @@ ok("AI civilians usually spot an obvious undercover", () => {
 /* ---------------- integration ---------------- */
 async function main() {
   process.env.TIME_SCALE = "0.02"; // 45s clue → 0.9s, 30s vote → 0.6s, etc.
+  process.env.PRIVATE_WAIT = "1000"; // keep the private-room clock out of the way; tests press Start now
   const { server, rooms } = require("../server");
   await new Promise((r) => server.listen(0, r));
   const url = "http://localhost:" + server.address().port;
@@ -148,9 +151,9 @@ async function main() {
     const me = dupe.state.players.find((p) => p.id === "tok-x");
     assert.ok(!me.named && /^Player \d+$/.test(me.name));
   });
-  dupe.s.emit("ready", true);
-  await until(() => dupe.problems.some((m) => /Pick your name/.test(m)), "ready blocked");
-  ok("can't Ready up until you've picked a name", () => assert.ok(!dupe.state.players.find((p) => p.id === "tok-x").ready));
+  dupe.s.emit("start");
+  await wait(60);
+  ok("only the room owner can start the game", () => assert.ok(!dupe.state.startAt && !dupe.state.game));
   let rn = await emitAck(dupe, "rename", "maya");
   ok("a name already in the room is refused", () => assert.match(rn.error, /already called/));
   rn = await emitAck(dupe, "rename", "Dee");
@@ -165,29 +168,26 @@ async function main() {
   ok("only the room owner can change settings", () => assert.equal(P[0].state.settings.mrWhite, false));
   P[0].s.emit("settings", { packs: ["sports", "nope", "basic", "sports"] });
   await until(() => P[0].state.settings.packs.length === 2, "packs");
-  ok("word packs stack on Basic; unknown packs ignored", () => assert.deepEqual(P[0].state.settings.packs, ["basic", "sports"]));
+  ok("any mix of word packs; unknown packs and repeats ignored", () => assert.deepEqual(P[0].state.settings.packs, ["sports", "basic"]));
   P[0].s.emit("settings", { packs: [] });
-  await until(() => P[0].state.settings.packs.length === 1, "packs reset");
-  ok("Basic can't be switched off", () => assert.deepEqual(P[0].state.settings.packs, ["basic"]));
+  await wait(60);
+  ok("an empty pack choice keeps the current packs", () => assert.deepEqual(P[0].state.settings.packs, ["sports", "basic"]));
   P[0].s.emit("settings", { packs: ["history"] });
-  await until(() => P[0].state.settings.packs.includes("history"), "history");
+  await until(() => P[0].state.settings.packs.join() === "history", "history");
 
-  for (const p of P.slice(0, 4)) p.s.emit("ready", true);
-  await until(() => P[0].state.players.filter((p) => p.ready).length === 4, "4 ready");
   await wait(150);
-  ok("no start until everyone is Ready", () => assert.equal(P[0].state.game, null));
-  P[0].s.emit("settings", { undercovers: 1 });
-  await until(() => P[0].state.players.every((p) => !p.ready), "settings reset ready");
-  ok("changing settings resets Ready", () => assert.ok(true));
-
-  for (const p of P) p.s.emit("ready", true);
+  ok("no Ready step: with enough players a private room's start clock is running", () => {
+    assert.equal(P[0].state.game, null);
+    assert.ok(P[0].state.autoAt > P[0].state.now);
+  });
+  P[0].s.emit("start");
   await until(() => P[0].state.startAt, "countdown");
-  ok("everyone Ready → automatic countdown", () => assert.ok(P[0].state.startAt > P[0].state.now));
+  ok("owner's Start now → 3-second countdown", () => assert.ok(P[0].state.startAt > P[0].state.now));
   await until(() => P.every((p) => p.state.game), "auto start");
   const g = () => rooms.get(code).game;
-  ok("words come from the chosen packs (Basic + History)", () => {
+  ok("words come only from the chosen pack (History alone, no Basic)", () => {
     const w = g().words, hit = WORDS.ALL.find((x) => [x.a, x.b].includes(w.civ) && [x.a, x.b].includes(w.und));
-    assert.ok(hit && ["basic", "history"].includes(hit.pack));
+    assert.ok(hit && hit.pack === "history");
   });
   ok("exactly one Undercover, two different words, nobody sees roles", () => {
     assert.equal(Object.values(g().roles).filter((r) => r === "und").length, 1);
@@ -201,8 +201,8 @@ async function main() {
   ok("out-of-turn clue is refused", () => assert.match(r.error, /not your turn/));
   r = await emitAck(first, "clue", G(first).me.word.split(" ")[0]);
   ok("saying your own word is refused", () => assert.match(r.error, /gives away/));
-  r = await emitAck(first, "clue", "two words");
-  ok("two words are refused", () => assert.match(r.error, /One word/));
+  r = await emitAck(first, "clue", "this clue is far too long to fit");
+  ok("a clue over 20 characters is refused", () => assert.match(r.error, /20 characters/));
   r = await emitAck(first, "clue", "alpha");
   r = await emitAck(second, "clue", "Alpha");
   ok("repeated clue is refused", () => assert.match(r.error, /already used/));
@@ -283,9 +283,9 @@ async function main() {
   });
 
   const prev = P[0].state.gameNo;
-  for (const p of P) p.s.emit("ready", true);
+  byId[P[0].state.ownerId].s.emit("start");
   await until(() => P.every((p) => p.state.gameNo === prev + 1 && G(p).phase === "clue"), "again");
-  ok("everyone Ready again → next game in the same room", () => {
+  ok("Start now again → next game in the same room", () => {
     assert.equal(P[0].state.code, code);
     assert.equal(G().alive.length, 5);
   });
@@ -294,14 +294,15 @@ async function main() {
   const ownerP = byId[P[0].state.ownerId]; // ownership moves if the owner dropped earlier
   ownerP.s.emit("settings", { mrWhite: true });
   await until(() => P[0].state.settings.mrWhite, "settings");
-  for (const p of P) p.s.emit("ready", true);
+  ownerP.s.emit("start");
   await until(() => P.every((p) => G(p)?.phase === "clue" && p.state.gameNo === prev + 2), "white game");
   const g3 = rooms.get(code).game;
   const white = Object.keys(g3.roles).find((k) => g3.roles[k] === "white");
-  ok("Mr. White sees no word; a category hint only if they speak first", () => {
+  ok("Mr. White sees no word; a hint word (close to the Civilians' word) only if they speak first", () => {
     const me = G(byId[white]).me, first = G().turnOrder[0] === white;
     assert.equal(me.white, true);
-    assert.equal(me.hint, first ? g3.category : null);
+    assert.equal(me.hint, first ? g3.hintWord : null);
+    assert.ok(g3.hintWord && !R.revealsWord(g3.hintWord, g3.words.civ) && !R.revealsWord(g3.hintWord, g3.words.und));
     for (const p of P) if (p.token !== white) assert.ok(!("hint" in G(p).me));
   });
   for (const pid of G().turnOrder) await emitAck(byId[pid], "clue", "z" + pid.slice(-3));
@@ -332,7 +333,7 @@ async function main() {
   });
   await wait(100);
   ok("AI players never start a game by themselves", () => assert.equal(H.state.game, null));
-  H.s.emit("ready", true);
+  H.s.emit("start");
   await until(() => H.state.game, "solo start");
   const solo = () => rooms.get(soloCode).game;
   let sguard = 0;
@@ -360,6 +361,27 @@ async function main() {
   const api = async () => (await fetch(url + "/api/rooms")).json();
   const before = await api();
   ok("private rooms are never listed", () => assert.ok(!before.some((r) => r.code === code)));
+  ok("there is always one open house room to join, with one word pack", () => {
+    const house = before.filter((r) => r.house && !r.playing);
+    assert.equal(house.length, 1);
+    assert.equal(house[0].packs.length, 1);
+  });
+  ok("empty house rooms already show a 3-minute start clock", () => assert.ok(before.filter((r) => r.house && !r.players).every((r) => r.startsIn > 0 && r.startsIn <= 180 * 1000 * 0.02)));
+  {
+    const r0 = before.find((r) => r.house && !r.players), t0 = rooms.get(r0.code).autoAt;
+    await until(() => rooms.get(r0.code)?.autoAt && rooms.get(r0.code).autoAt !== t0, "house clock restarts", 6000);
+    ok("with nobody there, a house room's clock just starts over", () => assert.ok(!rooms.get(r0.code).game));
+  }
+  {
+    const hc = before.find((r) => r.house && r.players === 0).code, V = phone("Vic");
+    await until(() => V.s.connected, "vic");
+    V.s.emit("join", { code: hc, name: "Vic", token: V.token });
+    await until(() => V.state, "join house room");
+    ok("the first person into a house room runs it", () => assert.equal(V.state.ownerId, V.token));
+    V.s.emit("leave"); await wait(80);
+    ok("a house room stays open (and empty) after everyone leaves", () => assert.ok(rooms.has(hc) && rooms.get(hc).players.size === 0));
+    V.s.close();
+  }
   const X = phone("Xena"), Y = phone("Yuki"), Z = phone("Zed");
   await until(() => X.s.connected && Y.s.connected && Z.s.connected, "xyz");
   X.s.emit("quickJoin", { name: "Xena", token: X.token });
@@ -387,12 +409,61 @@ async function main() {
   await until(() => Z.state, "z by code");
   ok("any room still works by code", () => assert.equal(Z.state.code, X.state.code));
 
+  {
+    const W = phone("Wes");
+    await until(() => W.s.connected, "wes");
+    W.s.emit("create", { token: W.token, name: "Wes", visibility: "private", settings: { mrWhite: true, whiteHint: false } });
+    await until(() => W.state, "wes room");
+    ok("Mr. White's hint can be switched off when creating a room", () => assert.equal(W.state.settings.whiteHint, false));
+    W.s.emit("leave"); W.s.close();
+  }
+
+  console.log("Friends & contact");
+  {
+    const A = phone("Ann"), B = phone("Ben"), got = { req: null, acc: null, inv: null };
+    await until(() => A.s.connected && B.s.connected, "ab");
+    const meA = new Promise((r) => A.s.once("me", r)), meB = new Promise((r) => B.s.once("me", r));
+    A.s.emit("hello", { token: A.token }); B.s.emit("hello", { token: B.token });
+    const [pa, pb] = [(await meA).pub, (await meB).pub];
+    ok("each player gets a public ID that isn't their private token", () => assert.ok(pa && pa !== A.token && pa !== pb));
+    B.s.on("friendRequest", (d) => (got.req = d)); A.s.on("friendAccepted", (d) => (got.acc = d)); B.s.on("invite", (d) => (got.inv = d));
+    A.s.emit("friendRequest", { to: pb, me: { name: "Ann", avatar: 3 } });
+    await until(() => got.req, "request");
+    ok("a friend request reaches the other player with your name and picture", () => assert.deepEqual(got.req, { from: pa, name: "Ann", avatar: 3 }));
+    B.s.emit("friendAccept", { to: pa, me: { name: "Ben", avatar: 5 } });
+    await until(() => got.acc, "accept");
+    ok("accepting tells the sender", () => assert.equal(got.acc.from, pb));
+    A.s.emit("create", { token: A.token, name: "Ann", visibility: "private" });
+    await until(() => A.state, "ann room");
+    ok("players in a room carry their public ID (AI players don't)", () => assert.equal(A.state.players[0].pub, pa));
+    const pres = await emitAck(B, "presence", [pa, "nobody12345"]);
+    ok("friends can see you're online and which room you're in", () => {
+      assert.deepEqual(pres[0], { pub: pa, online: true, room: A.state.code, playing: false });
+      assert.equal(pres[1].online, false);
+    });
+    A.s.emit("invite", { to: pb, me: { name: "Ann", avatar: 3 } });
+    await until(() => got.inv, "invite");
+    ok("you can invite a friend into your room", () => assert.equal(got.inv.code, A.state.code));
+    const post = async (body) => { const r = await fetch(url + "/api/contact", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); return [r.status, await r.json()]; };
+    const [s1, j1] = await post({ name: "Ad buyer", email: "ads@example.com", message: "We'd like to advertise." });
+    ok("Contact us accepts a message (the owner's address is never sent back)", () => { assert.equal(s1, 200); assert.deepEqual(j1, { ok: true }); });
+    const [s2] = await post({ message: "hi" });
+    const [s3] = await post({ email: "nope", message: "Hello there friends" });
+    ok("Contact us rejects empty messages and bad emails", () => { assert.equal(s2, 400); assert.equal(s3, 400); });
+    A.s.emit("leave"); A.s.close(); B.s.close();
+  }
+
   console.log("Chat");
   X.s.emit("chat", "hi all"); 
   await until(() => Z.state.chat.some((m) => m.text === "hi all"), "lobby chat");
   ok("lobby chat reaches everyone, nothing blocked before the game", () => assert.ok(true));
-  for (const p of [X, Y, Z]) p.s.emit("ready", true);
+  [X, Y, Z].find((p) => p.token === X.state.ownerId).s.emit("start");
   await until(() => [X, Y, Z].every((p) => p.state.game), "xyz game");
+  {
+    await wait(50);
+    const open = [...rooms.values()].filter((r) => r.settings.visibility === "public" && (!r.game || r.game.phase === "over"));
+    ok("once the open public room starts its game, exactly one new one opens", () => assert.equal(open.length, 1));
+  }
   await wait(750);
   {
     const g = () => rooms.get(X.state.code).game;

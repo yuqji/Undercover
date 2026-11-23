@@ -1,5 +1,5 @@
 // Word packs for Undercover.
-// "basic" is always on. The room owner can stack any of the other packs on top of it.
+// The room owner picks any mix of packs (at least one). New rooms start with "basic".
 // Each entry is [wordA, wordB]. Civilians get one word, the Undercover the other (random each game).
 // Mr. White's hint is the category: Basic uses its sub-category, other packs use the pack name.
 // To add a pack: copy one block, give it a new id, name and pairs. Keep words well known and office-friendly.
@@ -202,6 +202,6 @@ for (const [packId, pack] of Object.entries(PACKS)) {
   for (const [hint, pairs] of Object.entries(groups))
     pairs.forEach(([a, b], i) => ALL.push({ id: `${packId}:${hint}:${i}`, a, b, pack: packId, hint }));
 }
-const CATALOG = Object.entries(PACKS).map(([id, p]) => ({ id, name: p.name, blurb: p.blurb, count: ALL.filter((w) => w.pack === id).length, always: id === "basic" }));
+const CATALOG = Object.entries(PACKS).map(([id, p]) => ({ id, name: p.name, blurb: p.blurb, count: ALL.filter((w) => w.pack === id).length }));
 
 module.exports = { PACKS, ALL, CATALOG };
