@@ -94,30 +94,31 @@ function whiteClue(g, packs, used) {
   return null;
 }
 
-// Vote: work out which of the pair is the majority word from everyone's clues,
-// then suspect whoever's clues lean toward the minority word. Some noise keeps bots beatable.
+// Every clue word any bot knows about. A clue a bot has never heard of tells it little, so it
+// counts as neutral rather than as a giveaway (people use plenty of clues not on our lists).
+const KNOWN = new Set(Object.values(ASSOC).flat().map((w) => R.norm(w)));
+function voteFit(clue, word) {
+  if (fits(clue, word)) return 1;
+  return KNOWN.has(R.norm(clue)) ? 0.2 : 0.85;
+}
+
+// Vote like a person would: a bot only knows its own word (never the other one), so it suspects
+// whoever's clues fit its word least. Players who skipped look a bit suspicious too.
+// Some randomness keeps bots beatable — and a person who blends in can survive.
+const VOTE_RANDOM = 0.5;   // chance of a hunch vote for anyone
+const VOTE_NOISE = 2.2;    // how fuzzy their read of the clues is
 function chooseVote(g, botId, targets, packs) {
   if (!targets.length) return null;
-  if (Math.random() < 0.35) return rand(targets);
+  if (Math.random() < VOTE_RANDOM) return rand(targets);
   const byPlayer = {};
   for (const c of g.clues) if (c.word) (byPlayer[c.id] = byPlayer[c.id] || []).push(c.word);
   const role = g.roles[botId];
-  let a, b;
-  if (role === "white") {
-    a = bestGuess(Object.values(byPlayer).flat(), packs, g.whiteHint ? g.category : null).word;
-    b = partnerOf(a);
-  } else {
-    a = g.words[role];
-    b = partnerOf(a);
-  }
-  const score = (id, w) => (byPlayer[id] || []).reduce((n, cl) => n + fits(cl, w), 0);
-  let fa = 0, fb = 0;
-  for (const id of Object.keys(byPlayer)) if (id !== botId) { fa += score(id, a); fb += score(id, b); }
-  const minority = fb > fa ? a : b, majority = minority === a ? b : a;
+  const mine = role === "white" ? bestGuess(Object.values(byPlayer).flat(), packs, g.whiteHint ? g.category : null).word : g.words[role];
+  const fitAvg = (id) => { const cs = byPlayer[id] || []; return cs.length ? cs.reduce((n, cl) => n + voteFit(cl, mine), 0) / cs.length : 0.5; };
   const passes = (id) => g.clues.filter((c) => c.id === id && !c.word).length;
   let best = [], top = -Infinity;
   for (const id of shuffle(targets)) {
-    const s = score(id, minority) - score(id, majority) + passes(id) * 0.6 + Math.random() * 1.4;
+    const s = (1 - fitAvg(id)) * 2 + passes(id) * 0.6 + Math.random() * VOTE_NOISE;
     if (s > top) { top = s; best = [id]; } else if (Math.abs(s - top) < 1e-9) best.push(id);
   }
   return rand(best);

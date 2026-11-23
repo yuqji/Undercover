@@ -541,6 +541,14 @@ button.danger{background:#dc2626;color:#fff;border-color:#dc2626}
   .pword{font-size:20px;overflow-wrap:normal;word-break:normal}
   .votebtn{min-height:40px;padding:6px 14px;font-size:15px}
 }
+.share{margin-top:6px}.sharelbl{display:flex;align-items:center;gap:12px;color:var(--soft);font-weight:800;font-size:14px;margin:6px 0 10px}
+.sharelbl::before,.sharelbl::after{content:"";flex:1;height:1px;background:var(--line)}
+.sharebtns{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 6px}
+.shb{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;width:72px}
+.shi{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;transition:transform .12s}.shi svg{width:26px;height:26px}
+.shb:hover .shi{transform:scale(1.07)}.shb:focus-visible .shi{outline:3px solid rgba(37,99,235,.4);outline-offset:2px}
+.shn{font-size:12px;font-weight:800;color:var(--ink)}
+@media (max-width:600px){.shb{width:64px}.shi{width:44px;height:44px}}
 </style>
 </head>
 <body>
@@ -680,10 +688,12 @@ socket.on("connect", () => {
   // Rejoin the same seat automatically (same word, same vote) after a dropped connection or reload.
   const saved = store.get("uc-room");
   const target = linkRoom && !S ? linkRoom : saved;
-  if (target) socket.emit("join", { code: target, token, ...whoAmI() });
+  if (target) { rejoining = S ? S.code : null; socket.emit("join", { code: target, token, ...whoAmI() }); }
 });
+let rejoining = null; // the room we were in when the connection dropped
 socket.on("disconnect", () => { if (S) toast("Connection lost — reconnecting…"); });
 socket.on("state", (st) => {
+  rejoining = null;
   const firstJoin = !S || S.code !== st.code;
   if (S && S.game && st.game && (S.game.turnIdx !== st.game.turnIdx || S.game.round !== st.game.round)) { clueErr = ""; draft = ""; }
   if (S && S.gameNo !== st.gameNo) { hideWord = false; clueErr = ""; draft = ""; }
@@ -696,7 +706,16 @@ socket.on("state", (st) => {
   if (firstJoin) try { history.replaceState(null, "", "/r/" + st.code); } catch {}
   render();
 });
-socket.on("problem", (m) => { joining = false; toast(m); if (!S) { store.set("uc-room", null); render(); } });
+socket.on("problem", (m) => {
+  joining = false;
+  // Came back after a dropped connection and the room is gone (e.g. the server restarted): go home instead of freezing.
+  if (rejoining && S && S.code === rejoining && /^No room called/.test(m)) {
+    rejoining = null; S = null; store.set("uc-room", null); linkRoom = null;
+    try { history.replaceState(null, "", "/"); } catch {}
+    toast("That room closed while you were away. Join or start a new one!"); render(); return;
+  }
+  toast(m); if (!S) { store.set("uc-room", null); render(); }
+});
 socket.on("kicked", () => { S = null; store.set("uc-room", null); try { history.replaceState(null, "", "/"); } catch {} toast("The room owner removed you."); render(); });
 
 const nameOf = (id) => { const p = S.players.find((x) => x.id === id); return p ? p.name + (p.bot ? " (AI)" : "") : "Someone"; };
@@ -851,7 +870,7 @@ function room() {
   <div class="layout solo"><div class="main">
   ${over ? overSummary() : ""}
   <div class="card invite"><div class="invl"><span class="muted small" style="font-weight:800">Invite link · room code <b class="code">${esc(S.code)}</b></span>
-    <button type="button" class="linkpill" id="copy" aria-label="Copy invite link"><span class="lt">${esc(link.replace(/^https?:\/\//, ""))}</span><span class="lc"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="3"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg><span id="copyTxt">Copy</span></span></button></div></div>
+    <button type="button" class="linkpill" id="copy" aria-label="Copy invite link"><span class="lt">${esc(link.replace(/^https?:\/\//, ""))}</span><span class="lc"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="3"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg><span id="copyTxt">Copy</span></span></button>${shareRow(link)}</div></div>
   <div class="card invfr"><div class="turn"><h2 style="margin:0">Invite friends</h2><button type="button" class="sm ghost" data-friends-open>Friends</button></div><ul class="plist frlist" id="frInv">${inviteRows()}</ul></div>
   <div class="card">
     ${status}
@@ -875,6 +894,7 @@ function room() {
   bindName();
   const ab = $("#addbot"); if (ab) ab.onclick = () => socket.emit("addBot");
   bindInvites(); refreshPresenceSoon();
+  app.querySelectorAll("[data-share]").forEach((b) => (b.onclick = () => shareTo(b.dataset.share)));
   $("#copy").onclick = async () => {
     let ok = true; try { await navigator.clipboard.writeText(link); } catch { ok = false; }
     if (!ok) { const r = document.createRange(); r.selectNodeContents($("#copy .lt")); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); return toast("Press Cmd+C (or Ctrl+C) to copy"); }
@@ -1235,6 +1255,33 @@ function acceptFriend(d) {
   incoming = incoming.filter((x) => x.from !== d.from);
   socket.emit("friendAccept", { to: d.from, me: meProfile() });
   refreshPresence(); renderNotes(); render(); renderSocial();
+}
+
+// Share the room link straight into a chat app. Apps without a web share link (Instagram) copy the
+// link and open the app's messages.
+const SH = {
+  text: ["Messages", "#34c759", '<path d="M12 4c4.97 0 9 3.36 9 7.5S16.97 19 12 19c-1 0-1.97-.13-2.87-.38L4.5 20.5l1.2-3.6C4.03 15.57 3 13.62 3 11.5 3 7.36 7.03 4 12 4z" fill="#fff"/>'],
+  whatsapp: ["WhatsApp", "#25d366", '<path d="M8.6 6.8c.3-.2.7-.2.9.1l1.2 1.8c.2.3.2.7-.1 1l-.7.7c.6 1.3 1.6 2.3 2.9 2.9l.7-.7c.3-.3.7-.3 1-.1l1.8 1.2c.3.2.4.6.1.9l-.8 1c-.5.6-1.3.8-2 .5C10.9 15.1 8.9 13.1 7.9 10.4c-.3-.7-.1-1.5.5-2z" fill="#fff"/><circle cx="12" cy="12" r="8" fill="none" stroke="#fff" stroke-width="1.8"/>'],
+  instagram: ["Instagram", "linear-gradient(45deg,#f9a825,#e1306c 50%,#833ab4)", '<rect x="5" y="5" width="14" height="14" rx="4.5" fill="none" stroke="#fff" stroke-width="2"/><circle cx="12" cy="12" r="3.4" fill="none" stroke="#fff" stroke-width="2"/><circle cx="16.3" cy="7.7" r="1.1" fill="#fff"/>'],
+  snapchat: ["Snapchat", "#fffc00", '<path d="M12 5c2.6 0 4.3 2 4.3 4.6v1.6l1.4-.4c.4 0 .6.5.2.7l-1.6.8c.4 1.4 1.4 2.4 2.7 2.8-.3.6-1.3.8-2.2.9l-.3 1-1.3-.2c-.9.6-1.8 1.2-3.2 1.2s-2.3-.6-3.2-1.2l-1.3.2-.3-1c-.9-.1-1.9-.3-2.2-.9 1.3-.4 2.3-1.4 2.7-2.8l-1.6-.8c-.4-.2-.2-.7.2-.7l1.4.4V9.6C7.7 7 9.4 5 12 5z" fill="#fff" stroke="#111" stroke-width="1"/>'],
+  telegram: ["Telegram", "#27a5e7", '<path d="M5 11.6l12.6-5c.6-.2 1.1.2.9.9l-2.2 10.3c-.1.6-.8.8-1.2.4l-3.3-2.5-1.7 1.6c-.2.2-.5.1-.5-.2l.2-2.6 5.6-5.1c.2-.2 0-.4-.3-.2L8.2 13.4 5.1 12.4c-.6-.2-.6-.6-.1-.8z" fill="#fff"/>'],
+  facebook: ["Facebook", "#1877f2", '<path d="M13.2 19v-6h2l.3-2.4h-2.3V9.2c0-.7.2-1.2 1.2-1.2h1.2V5.9c-.2 0-1-.1-1.8-.1-1.8 0-3 1.1-3 3.1v1.7H8.8V13h2v6z" fill="#fff"/>'],
+  x: ["X", "#111", '<path d="M6 5.5h3.2l3.2 4.5 3.7-4.5h1.8l-4.7 5.6 5.3 7.4h-3.2l-3.5-4.9-4 4.9H6l5-6z" fill="#fff"/>'],
+};
+const shareRow = (link) => `<div class="share"><span class="sharelbl">Invite your friends</span><div class="sharebtns">${Object.entries(SH).map(([k, [n, bg, ico]]) =>
+  `<button type="button" class="shb" data-share="${k}" aria-label="Share on ${n}"><span class="shi" style="background:${bg}"><svg viewBox="0 0 24 24" aria-hidden="true">${ico}</svg></span><span class="shn">${n}</span></button>`).join("")}</div></div>`;
+function shareTo(kind) {
+  const link = location.origin + "/r/" + S.code;
+  const msg = `Play Undercover with me! Room ${S.code}: ${link}`;
+  const enc = encodeURIComponent, open = (u) => window.open(u, "_blank", "noopener");
+  const copy = async (note) => { try { await navigator.clipboard.writeText(msg); } catch {} toast(note); };
+  if (kind === "text") location.href = `sms:${/iPhone|iPad|Mac/.test(navigator.userAgent) ? "&" : "?"}body=${enc(msg)}`;
+  else if (kind === "whatsapp") open(`https://wa.me/?text=${enc(msg)}`);
+  else if (kind === "telegram") open(`https://t.me/share/url?url=${enc(link)}&text=${enc("Play Undercover with me! Room " + S.code)}`);
+  else if (kind === "facebook") open(`https://www.facebook.com/sharer/sharer.php?u=${enc(link)}`);
+  else if (kind === "x") open(`https://x.com/intent/post?text=${enc("Play Undercover with me! Room " + S.code)}&url=${enc(link)}`);
+  else if (kind === "snapchat") open(`https://www.snapchat.com/share?link=${enc(link)}`);
+  else if (kind === "instagram") { copy("Link copied — paste it in an Instagram message"); setTimeout(() => open("https://www.instagram.com/direct/inbox/"), 400); }
 }
 // Lobby: your friends, with an Invite button for the ones online and not already here.
 let invited = {};
