@@ -512,14 +512,10 @@ async function main() {
     await until(() => O.state.players.length === 5, "bots");
     O.s.emit("start");
     await until(() => O.state.game && O.state.game.phase === "clue", "game on", 8000);
-    let kicked = false; K.s.on("kicked", () => (kicked = true));
+    let kicked = false, refusedKick = null; K.s.on("kicked", () => (kicked = true)); O.s.once("problem", (m) => (refusedKick = m));
     O.s.emit("kick", K.token);
-    await until(() => kicked && !O.state.game.alive.includes(K.token), "kicked mid-game");
-    ok("the owner can remove a player mid-game: they're out and told so", () => assert.ok(O.state.game.outRoles[K.token]));
-    let refused = null; K.s.once("problem", (m) => (refused = m));
-    K.s.emit("join", { code: O.state.code, name: "Kat", token: K.token });
-    await until(() => refused, "rejoin refused");
-    ok("…and can't rejoin that room", () => assert.match(refused, /removed/));
+    await until(() => refusedKick, "kick refused mid-game");
+    ok("the owner can't remove a player once the game has started", () => { assert.ok(!kicked); assert.ok(O.state.game.alive.includes(K.token)); assert.match(refusedKick, /game is on/); });
     O.s.close(); K.s.close();
   }
 

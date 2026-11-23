@@ -551,7 +551,7 @@ button.danger{background:#dc2626;color:#fff;border-color:#dc2626}
 @media (max-width:600px){.shb{width:64px}.shi{width:44px;height:44px}}
 .clink{color:var(--pink);font-weight:700;text-decoration:underline;overflow-wrap:anywhere}
 .langtag{display:inline-block;font-size:12px;font-weight:800;color:#b45309;background:#fef3c7;border-radius:999px;padding:1px 8px;vertical-align:2px;margin-left:4px}
-.kickg{font-size:13px;color:var(--soft);margin-left:auto}.kickg:hover{color:#dc2626}
+
 </style>
 </head>
 <body>
@@ -601,7 +601,7 @@ const params = new URLSearchParams(location.search);
 
 let pubTick = null;
 let editingName = false, nameErr = "", nameDraft = null, avDraft = null, endShown = {};
-let leaveAsk = false, kickAsk = null;
+let leaveAsk = false;
 let S = null, skew = 0, hideWord = false, clueErr = "", draft = "", toastT = null, tick = null, joining = false, chatDraft = "", chatErr = "", lastChatLen = 0;
 // An invite link (/r/ABCD, or the older ?room=ABCD) drops you straight into that room.
 let linkRoom = ((location.pathname.match(/^\/r\/([a-z]{4})\/?$/i) || [])[1] || params.get("room") || "").toUpperCase() || null;
@@ -1849,7 +1849,7 @@ function playerTable() {
         ${turnNo ? `<span class="turnno ${typing ? "now" : done ? "done" : ""}" title="Speaks ${turnNo}${["st", "nd", "rd"][turnNo - 1] || "th"} this round">${turnNo}</span>` : '<span class="turnno blank"></span>'}
         ${out ? `<span class="outav">${avatarEl(p.avatar)}</span>` : (p.id === S.you ? `<button type="button" class="avbtn" id="myAv" aria-label="Change your look" title="Change your look">${avatarEl(p.avatar)}</button>` : avatarEl(p.avatar))}
         <div class="pinfo">
-          <div class="pname"><b>${esc(p.name)}</b>${flagEl(p.country)}${p.id === S.you ? '<span class="tag you">You</span>' : ""}${p.bot ? '<span class="tag ai">AI</span>' : ""}${!p.bot && !p.connected ? '<span class="tag off">Offline</span>' : ""}${typing ? '<span class="tag turn">Speaking</span>' : ""}${out ? `<span class="tag out">${(g.leftIds || []).includes(p.id) ? "Left" : "Out"} · ${roleName(g.outRoles?.[p.id])}</span>` : ""}${isOwner() && p.id !== S.you && !out && g.phase !== "over" ? `<button type="button" class="linkbtn kickg" data-kickg="${esc(p.id)}" aria-label="Remove ${esc(p.name)} from the game">Remove</button>` : ""}</div>
+          <div class="pname"><b>${esc(p.name)}</b>${flagEl(p.country)}${p.id === S.you ? '<span class="tag you">You</span>' : ""}${p.bot ? '<span class="tag ai">AI</span>' : ""}${!p.bot && !p.connected ? '<span class="tag off">Offline</span>' : ""}${typing ? '<span class="tag turn">Speaking</span>' : ""}${out ? `<span class="tag out">${(g.leftIds || []).includes(p.id) ? "Left" : "Out"} · ${roleName(g.outRoles?.[p.id])}</span>` : ""}</div>
           <div class="pword">${big}</div>
         </div>
         ${canVote ? `<button class="votebtn" data-t="${esc(p.id)}" aria-pressed="${mine}" aria-label="${mine ? "Take back your vote for" : "Vote out"} ${esc(p.name)}">${mine ? "Voted ✓" : "Vote"}</button>` : ""}
@@ -1866,19 +1866,13 @@ function game() {
   const g = S.game;
   const top = `<div class="bar"><span><img src="logo.svg" alt="" class="logo sm">Room <span class="code">${esc(S.code)}</span></span><span class="row">${helpBtnFn()}${true ? `<button class="sm ghost iconbtn" id="leave" aria-label="Leave room" title="Leave room"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>` : ""}</span></div>`;
   const body = ({ clue: cluePhase, vote: votePhase, result: resultPhase, whiteguess: whitePhase })[g.phase]();
-  const kp = kickAsk && S.players.find((x) => x.id === kickAsk);
-  const kickBox = kp ? `<div class="modal namemodal" role="dialog" aria-modal="true" aria-labelledby="kkH"><div class="card namecard">
-    <h2 id="kkH">Remove ${esc(kp.name)}?</h2><p style="margin:8px 0 18px">${kp.bot ? "This AI player will be out of the game." : "They'll be out of this game (their role is shown) and can't rejoin this room."}</p>
-    <div class="two"><button type="button" class="ghost" id="kickNo">Cancel</button><button type="button" class="danger" id="kickYes">Remove</button></div></div></div>` : "";
+
   const ask = leaveAsk && g.alive.includes(S.you) && g.phase !== "over" ? `<div class="modal namemodal" role="dialog" aria-modal="true" aria-labelledby="lvH"><div class="card namecard">
     <h2 id="lvH">Leave this game?</h2><p style="margin:8px 0 18px">You'll be out of this round — your role is shown to everyone and you won't get points for this game.</p>
     <div class="two"><button type="button" class="ghost" id="leaveNo">Stay</button><button type="button" class="danger" id="leaveYes">Leave game</button></div></div></div>` : "";
-  app.innerHTML = top + `<div class="layout"><div class="main">${idCard()}${body}</div><aside class="side">${playerTable()}</aside></div>` + ask + kickBox;
+  app.innerHTML = top + `<div class="layout"><div class="main">${idCard()}${body}</div><aside class="side">${playerTable()}</aside></div>` + ask;
   const h = $("#hide"); if (h) h.onclick = () => { hideWord = !hideWord; render(); };
   const lv = $("#leave"); if (lv) lv.onclick = () => (g.alive.includes(S.you) && g.phase !== "over" ? (leaveAsk = true, render()) : leave());
-  app.querySelectorAll("[data-kickg]").forEach((b) => (b.onclick = () => { kickAsk = b.dataset.kickg; render(); }));
-  const ky = $("#kickYes"); if (ky) ky.onclick = () => { socket.emit("kick", kickAsk); kickAsk = null; render(); };
-  const kn = $("#kickNo"); if (kn) kn.onclick = () => { kickAsk = null; render(); };
   const ly = $("#leaveYes"); if (ly) ly.onclick = () => { leaveAsk = false; leave(); };
   const ln = $("#leaveNo"); if (ln) ln.onclick = () => { leaveAsk = false; render(); };
   bind[g.phase] && bind[g.phase]();

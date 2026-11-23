@@ -975,11 +975,12 @@ io.on("connection", (socket) => {
     broadcast(room);
   });
 
-  // The room owner removes a player — in the lobby, or mid-game (they count as out, role shown).
+  // The room owner removes a player — only in the lobby, never once a game is under way.
   // A removed person can't come back into this room.
   socket.on("kick", (id) => {
     const { room, p } = ctx();
     if (!room || room.ownerId !== p?.id || id === p.id) return;
+    if (!inLobby(room) && room.game && room.game.phase !== "over") return fail("You can't remove players while a game is on.");
     const k = room.players.get(id);
     if (!k) return;
     if (!k.bot) (room.banned ||= new Set()).add(id);
