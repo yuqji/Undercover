@@ -21,6 +21,8 @@ const RESULT_SECS = 8; // seconds the round result stays up before the next roun
 const WHITE_GUESS_SECS = 30;
 const LOBBY_DROP_SECS = 60; // offline players are removed from the lobby after this
 const HOUSE_WAIT = 180; // house rooms: a rolling 3-minute clock, even while empty
+const HOUSE_FILL = Number(process.env.HOUSE_FILL ?? 4); // AI fills a house room up to this many players
+const HOUSE_JOIN_WAIT = Number(process.env.HOUSE_JOIN_WAIT ?? 60); // max wait once a person is in a house room
 const PRIVATE_WAIT = Number(process.env.PRIVATE_WAIT || 30); // private rooms: seconds until the start once enough players are in
 const PUBLIC_WAIT = 120; // public rooms: seconds until an automatic start once enough players are in
 const CLUE_SECS = 45; // fixed for everyone — not a room setting
@@ -309,6 +311,13 @@ function maintainHouseRooms() {
 }
 
 /* ---------- auto start: everyone Ready → 3, 2, 1 ---------- */
+function addBotTo(room) {
+  const id = "bot-" + Math.random().toString(36).slice(2, 10);
+  const name = Bots.botName([...room.players.values()].map((x) => x.name));
+  const bot = { id, name, avatar: freeAvatar(room), bot: true, connected: true, sockets: new Set(), score: 0, joinedAt: Date.now(), ready: true, dropTimer: null };
+  room.players.set(id, bot);
+  return bot;
+}
 function scheduleAuto(room, secs) {
   room.autoAt = Date.now() + ms(secs);
   room.autoTimer = setTimeout(() => {
@@ -316,6 +325,11 @@ function scheduleAuto(room, secs) {
     room.autoAt = null;
     if (!rooms.has(room.code) || !inLobby(room)) return;
     const here = [...room.players.values()].filter((p) => p.connected);
+    // House rooms never leave a person waiting: when the clock runs out, AI players fill the empty seats.
+    if (room.system && here.some((p) => !p.bot)) {
+      const target = Math.min(MAX_PLAYERS, Math.max(rules.minPlayers(room.settings), HOUSE_FILL));
+      while (here.length < target) here.push(addBotTo(room));
+    }
     if (here.some((p) => !p.bot) && !rules.checkSetup(here.length, room.settings)) {
       const err = startGame(room);
       if (err) io.to(room.code).emit("problem", err);
@@ -334,7 +348,9 @@ function checkAutoStart(room) {
   // Other rooms start their clock once there are enough players: 2 minutes in a public room,
   // 30 seconds in a private one. The room owner can always start sooner with "Start now".
   if (room.system) {
-    if (!room.autoTimer) scheduleAuto(room, HOUSE_WAIT);
+    if (!room.autoTimer) scheduleAuto(room, people ? HOUSE_JOIN_WAIT : HOUSE_WAIT);
+    // Someone just walked into an empty house room: they wait at most HOUSE_JOIN_WAIT, not the full clock.
+    else if (people && room.autoAt - Date.now() > ms(HOUSE_JOIN_WAIT)) { clearTimeout(room.autoTimer); room.autoTimer = null; scheduleAuto(room, HOUSE_JOIN_WAIT); }
   } else if (people && okSize) {
     if (!room.autoTimer) scheduleAuto(room, room.settings.visibility === "public" ? PUBLIC_WAIT : PRIVATE_WAIT);
   } else if (room.autoTimer) {
@@ -601,7 +617,7 @@ function view(room, pid) {
   }));
   const here = players.filter((p) => p.connected).length;
   const plan = { undercovers: rules.undercoverCount(Math.max(here, 3), room.settings), need: rules.minPlayers(room.settings), auto: rules.autoUndercovers(Math.max(here, 3)) };
-  const v = { code: room.code, ownerId: room.ownerId, you: pid, players, chat: room.chat, plan, settings: room.settings, packs: WORDS.CATALOG, times: { clue: CLUE_SECS, vote: VOTE_SECS }, gameNo: room.gameNo, startAt: room.startAt, autoAt: room.autoAt || null, now: Date.now(), game: null };
+  const v = { code: room.code, house: !!room.system, ownerId: room.ownerId, you: pid, players, chat: room.chat, plan, settings: room.settings, packs: WORDS.CATALOG, times: { clue: CLUE_SECS, vote: VOTE_SECS }, gameNo: room.gameNo, startAt: room.startAt, autoAt: room.autoAt || null, now: Date.now(), game: null };
   if (!g) return v;
   const myRole = g.roles[pid];
   v.game = {
@@ -871,9 +887,7 @@ io.on("connection", (socket) => {
     const { room, p } = ctx();
     if (!room || room.ownerId !== p?.id || !inLobby(room)) return;
     if (room.players.size >= MAX_PLAYERS) return fail("This room is full (16 players).");
-    const id = "bot-" + Math.random().toString(36).slice(2, 10);
-    const name = Bots.botName([...room.players.values()].map((x) => x.name));
-    room.players.set(id, { id, name, avatar: freeAvatar(room), bot: true, connected: true, sockets: new Set(), score: 0, joinedAt: Date.now(), ready: true, dropTimer: null });
+    addBotTo(room);
     checkAutoStart(room);
     broadcast(room);
   });

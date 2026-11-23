@@ -783,7 +783,7 @@ async function loadRooms() {
     ? `<ul class="plist rooms">${list.map((r) => {
         const ids = r.packIds || [];
         const title = r.owner ? `${esc(r.owner)}'s room` : esc(r.packs.join(" · "));
-        const needTxt = r.need ? `needs ${r.need} more player${r.need === 1 ? "" : "s"}` : "enough players";
+        const needTxt = r.house && r.need ? "AI fills empty seats" : r.need ? `needs ${r.need} more player${r.need === 1 ? "" : "s"}` : "enough players";
         const when = r.playing ? "Game in progress"
           : r.startsIn != null ? `Starts in <b data-until="${now + r.startsIn}" data-fmt="mmss">${Math.floor(r.startsIn / 60000)}:${String(Math.floor(r.startsIn / 1000) % 60).padStart(2, "0")}</b> · ${needTxt}`
           : r.need ? `Needs ${r.need} more player${r.need === 1 ? "" : "s"} to start` : "Starting soon";
@@ -809,7 +809,7 @@ function room() {
   const seg = (k, opts) => `<div class="seg" data-k="${k}">${opts.map(([v, l]) => `<button data-v="${v}" aria-pressed="${st[k] === v}" ${owner ? "" : "disabled"}>${l}</button>`).join("")}</div>`;
   const over = S.game?.phase === "over";
   // No Ready button: everyone in the room plays. The game starts on the room's clock (or the owner's Start now).
-  const short = n < need ? `Needs ${need - n} more player${need - n === 1 ? "" : "s"}` : `${n} players in`;
+  const short = n < need ? (S.house ? "AI players will fill empty seats" : `Needs ${need - n} more player${need - n === 1 ? "" : "s"}`) : `${n} players in`;
   const mmss = (at) => `${Math.floor(left(at) / 60)}:${String(left(at) % 60).padStart(2, "0")}`;
   let status;
   if (S.startAt) status = `<p class="autostart">Starting in <b data-until="${S.startAt}" data-fmt="mmss">${mmss(S.startAt)}</b><span>${short}</span></p>`;

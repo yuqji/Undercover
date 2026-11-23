@@ -499,6 +499,23 @@ async function main() {
     ok("…so a blocked word doesn't prove it's the other side's", () => assert.match(r1.error, /too close/));
   }
 
+  console.log("House rooms fill with AI");
+  {
+    const hr = [...rooms.values()].find((r) => r.system && !r.game && !r.players.size);
+    const L = phone("Lone");
+    await until(() => L.s.connected, "lone");
+    L.s.emit("join", { code: hr.code, name: "Lone", token: L.token });
+    await until(() => L.state, "lone joins house room");
+    ok("a person in an empty house room waits at most a minute", () => assert.ok(hr.autoAt - Date.now() <= 60 * 1000 * 0.02 + 5));
+    await until(() => hr.game && hr.game.phase !== "over", "house game starts", 8000);
+    ok("when the clock runs out, AI players fill the seats and the game starts", () => {
+      const ps = [...hr.players.values()];
+      assert.equal(ps.filter((p) => !p.bot).length, 1);
+      assert.ok(ps.length >= 4 && ps.filter((p) => p.bot).length >= 3);
+    });
+    L.s.close();
+  }
+
   for (const p of [...P, X, Y, Z]) p.s.close();
   H.s.close();
   server.close();
