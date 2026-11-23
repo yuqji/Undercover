@@ -1139,7 +1139,9 @@ function moments(prev, st) {
     const r = g.reveal.roles[st.you];
     const won = r && ((g.winner === "civ" && r === "civ") || (g.winner === "imp" && r !== "civ") || (g.winner === "white" && r === "white"));
     setTimeout(() => { if (won) SFX.win(); else if (r) SFX.lose(); }, newOut ? 700 : 100);
-    if (r && SB && account) SB.rpc("record_game", { won: !!won, undercover: r !== "civ" }).then(() => pullProfile()).catch(() => {});
+    // Your record only counts games with at least one other real person (not just you vs AI players).
+    const people = Object.keys(g.reveal.roles).filter((id) => !id.startsWith("bot-")).length;
+    if (r && SB && account && people >= 2) SB.rpc("record_game", { won: !!won, undercover: r !== "civ" }).then(() => pullProfile()).catch(() => {});
   }
 }
 
