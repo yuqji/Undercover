@@ -477,6 +477,15 @@ async function main() {
     r1 = await emitAck(civ, "chat", "who is the undercover?");
     ok("normal chat goes through to everyone", () => assert.ok(r1.ok, JSON.stringify(r1) + " words=" + JSON.stringify(g().chatBlock)));
     await until(() => [X, Y, Z].every((p) => p.state.chat.some((m) => m.text === "who is the undercover?")), "chat arrives");
+    await wait(750);
+    r1 = await emitAck(civ, "chat", "come play at funsite.com");
+    ok("chat blocks links", () => assert.match(r1.error, /Links/));
+    await wait(750);
+    r1 = await emitAck(civ, "chat", "join discord dot gg");
+    r1 = await emitAck(civ, "chat", "https://x.y");
+    ok("chat blocks http links", () => assert.match(r1.error || "", /Links|Slow/));
+    await wait(750);
+    r1 = await emitAck(civ, "chat", "x");
     r1 = await emitAck(civ, "chat", "again");
     ok("chat is rate-limited", () => assert.match(r1.error, /Slow down/));
     await wait(750);

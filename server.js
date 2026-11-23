@@ -169,6 +169,10 @@ function freeAvatar(room) {
   const pool = free.length ? free : [...Array(AVATAR_COUNT).keys()];
   return pool[Math.floor(Math.random() * pool.length)];
 }
+// Links of any kind (http://, www., something.com, discord.gg/…) are not allowed in chat or names.
+const TLDS = "com|net|org|io|gg|me|co|ly|app|xyz|info|biz|us|uk|ca|cn|tv|link|site|online|club|top|shop|store|live|dev|ai|to|cc|ru|de|fr|jp|kr|in|au|nl|es|it|br|onion|page|fun|vip|win|bet|cash|money|click|lol|pro|one|world|cloud|email";
+const LINK_RE = new RegExp(`(https?:|ftp:|www\\.|:\\/\\/|\\b[a-z0-9-]+\\.(?:${TLDS})\\b|\\b[a-z0-9-]+(?:\\s*[\\(\\[]\\s*dot\\s*[\\)\\]]\\s*|\\s+dot\\s+)(?:com|net|org|gg|io)\\b)`, "i");
+const hasLink = (t) => LINK_RE.test(String(t || ""));
 const cleanName = (n) => String(n || "").replace(/[\u0000-\u001f<>]/g, "").replace(/\s+/g, " ").trim().slice(0, NAME_MAX);
 
 // The room owner's choices: undercover count, Mr. White and word packs (any mix, at least one).
@@ -785,6 +789,7 @@ io.on("connection", (socket) => {
     if (typed.length > NAME_MAX) return reply({ error: `Names can be up to ${NAME_MAX} characters.` });
     const name = cleanName(raw);
     if (!name) return reply({ error: "Type a name first." });
+    if (hasLink(name)) return reply({ error: "Names can't contain links." });
     if (nameTaken(room, name, p.id)) return reply({ error: `Someone here is already called ${name}. Add an initial?` });
     p.name = name;
     p.named = true;
@@ -864,6 +869,7 @@ io.on("connection", (socket) => {
     if (!room || !p) return reply({ error: "You're not in a room." });
     const text = String(raw ?? "").replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, CHAT_MAX);
     if (!text) return reply({ error: "Type a message first." });
+    if (hasLink(text)) return reply({ error: "Links aren't allowed in chat." });
     const now = Date.now();
     if (now - (p.lastChat || 0) < CHAT_GAP_MS) return reply({ error: "Slow down a little." });
     const g = room.game;

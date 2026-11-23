@@ -500,6 +500,7 @@ button:active{transform:scale(.96)}
 .turnno.now{background:var(--pink);color:#fff}.turnno.done{background:var(--ink);color:#fff}.turnno.blank{background:none}
 .brand{display:flex;align-items:center;gap:12px}.logo{width:44px;height:44px;border-radius:11px;flex:none}.logo.sm{width:26px;height:26px;border-radius:7px;vertical-align:-7px;margin-right:10px}
 .timesup{margin-top:14px;padding:14px 16px;border-radius:14px;background:#fdecec;color:#c0392b;font-weight:800;text-align:center}
+.invfr .turn{margin-bottom:6px}.invfr .frlist{margin:0}.frlist li.offf{opacity:.6}
 </style>
 </head>
 <body>
@@ -784,6 +785,7 @@ function room() {
   ${over ? overSummary() : ""}
   <div class="card invite"><div class="invl"><span class="muted small" style="font-weight:800">Invite link · room code <b class="code">${esc(S.code)}</b></span>
     <button type="button" class="linkpill" id="copy" aria-label="Copy invite link"><span class="lt">${esc(link.replace(/^https?:\/\//, ""))}</span><span class="lc"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="3"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg><span id="copyTxt">Copy</span></span></button></div></div>
+  <div class="card invfr"><div class="turn"><h2 style="margin:0">Invite friends</h2><button type="button" class="sm ghost" data-friends-open>Friends</button></div><ul class="plist frlist" id="frInv">${inviteRows()}</ul></div>
   <div class="card">
     ${status}
     <div class="pbar"><i style="width:${Math.min(100, (n / need) * 100)}%"></i></div>
@@ -805,6 +807,7 @@ function room() {
   app.querySelectorAll("[data-block]").forEach((b) => (b.onclick = () => { const p = S.players.find((x) => x.pub === b.dataset.block); if (p) blockPlayer(p.pub, p.name, p.avatar); }));
   bindName();
   const ab = $("#addbot"); if (ab) ab.onclick = () => socket.emit("addBot");
+  bindInvites(); refreshPresenceSoon();
   $("#copy").onclick = async () => {
     let ok = true; try { await navigator.clipboard.writeText(link); } catch { ok = false; }
     if (!ok) { const r = document.createRange(); r.selectNodeContents($("#copy .lt")); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); return toast("Press Cmd+C (or Ctrl+C) to copy"); }
@@ -1160,11 +1163,34 @@ function acceptFriend(d) {
   socket.emit("friendAccept", { to: d.from, me: meProfile() });
   refreshPresence(); renderNotes(); render(); renderSocial();
 }
+// Lobby: your friends, with an Invite button for the ones online and not already here.
+let invited = {};
+function inviteRows() {
+  const fr = Object.entries(friends).map(([pub, f]) => ({ pub, ...f, st: presence[pub] || {} }))
+    .sort((a, b) => (!!b.st.online - !!a.st.online) || a.name.localeCompare(b.name));
+  if (!fr.length) return '<li class="empty">No friends yet. After a game, add people from <b>Played with</b> in Friends — then you can invite them here.</li>';
+  return fr.map((f) => {
+    const st = f.st, here = S && st.room === S.code, sent = invited[S.code + ":" + f.pub];
+    const status = !st.online ? "Offline" : here ? "In this room" : st.playing ? "Playing a game" : st.room ? "In another room" : "Online";
+    const btn = here ? "" : !st.online ? '<button class="sm ghost" disabled>Invite</button>'
+      : sent ? '<button class="sm ghost" disabled>Invited</button>' : `<button class="sm" data-inv="${esc(f.pub)}">Invite</button>`;
+    return `<li class="${st.online ? "" : "offf"}"><span class="avatar emo sm">${avatarSVG(f.avatar)}</span><span class="nm">${esc(f.name)}<br><span class="fst ${st.online ? "on" : ""}">${status}</span></span>${btn}</li>`;
+  }).join("");
+}
+function bindInvites() {
+  app.querySelectorAll("[data-inv]").forEach((b) => (b.onclick = () => {
+    socket.emit("invite", { to: b.dataset.inv, me: meProfile() });
+    invited[S.code + ":" + b.dataset.inv] = 1; b.textContent = "Invited"; b.disabled = true; b.className = "sm ghost";
+  }));
+  app.querySelectorAll("[data-friends-open]").forEach((b) => (b.onclick = () => { socialTab = Object.keys(friends).length ? "friends" : "recent"; openSocial("friends"); }));
+}
 function refreshPresence() {
   const ids = Object.keys(friends); if (!ids.length || !socket.connected) return;
-  socket.emit("presence", ids, (list) => { presence = Object.fromEntries((list || []).map((x) => [x.pub, x])); renderSocial(); const b = document.querySelector("[data-friends]"); if (b) b.outerHTML = friendsBtn(), app.querySelectorAll("[data-friends]").forEach((x) => (x.onclick = () => openSocial("friends"))); });
+  socket.emit("presence", ids, (list) => { presence = Object.fromEntries((list || []).map((x) => [x.pub, x])); renderSocial(); const fi = $("#frInv"); if (fi) { fi.innerHTML = inviteRows(); bindInvites(); } const b = document.querySelector("[data-friends]"); if (b) b.outerHTML = friendsBtn(), app.querySelectorAll("[data-friends]").forEach((x) => (x.onclick = () => openSocial("friends"))); });
 }
 setInterval(refreshPresence, 20000);
+let presSoon = 0;
+function refreshPresenceSoon() { if (Date.now() - presSoon > 8000) { presSoon = Date.now(); setTimeout(refreshPresence, 0); } }
 const canLeave = () => !S || !S.game || S.game.phase === "over" || !S.game.alive.includes(S.you);
 function goToRoom(code) {
   if (S && S.code === code) return;
