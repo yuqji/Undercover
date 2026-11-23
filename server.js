@@ -257,9 +257,8 @@ function removePlayer(room, id) {
 }
 
 /* ---------- house rooms: public rooms that are always there to join ---------- */
-// So the home page never shows an empty list, the server keeps one open public room waiting for
-// players (one random word pack). A new one is added only when no public room is left to join —
-// the open one filled up or started its game. The first person in a house room runs it.
+// So the home page never shows an empty list, the server keeps its own public rooms waiting for
+// players (one random word pack each). The first person in a house room runs it.
 // House rooms: the site keeps PUBLIC_POOL of its own public rooms open to join (players' own public
 // rooms don't count and have no limit), but adds them one at a time — at least HOUSE_GAP seconds apart — so their start clocks are spread out instead of all
 // starting together. When one fills up or starts its game, a replacement follows (also staggered).
@@ -337,8 +336,21 @@ function scheduleAuto(room, secs) {
     broadcast(room);
   }, ms(secs));
 }
+// House rooms are never short of players: as soon as a person is in, AI players fill it up to
+// HOUSE_FILL, and each new person takes an AI player's seat. With no people left, the AI players go.
+function balanceHouseBots(room) {
+  if (!room.system || !inLobby(room)) return;
+  const people = humans(room).length;
+  const bots = [...room.players.values()].filter((p) => p.bot);
+  if (!people) { for (const b of bots) room.players.delete(b.id); return; }
+  const target = Math.min(MAX_PLAYERS, Math.max(rules.minPlayers(room.settings), HOUSE_FILL));
+  let extra = room.players.size - Math.max(target, people);
+  while (extra > 0 && bots.length) { room.players.delete(bots.pop().id); extra--; }
+  while (room.players.size < target) addBotTo(room);
+}
 function checkAutoStart(room) {
   if (!inLobby(room)) return;
+  balanceHouseBots(room);
   const here = [...room.players.values()].filter((p) => p.connected);
   // At least one person must be here — AI players never start a game on their own.
   const people = here.some((p) => !p.bot);
@@ -562,6 +574,27 @@ function whiteGuessed(room, guess) {
   finishOrContinue(room);
 }
 
+// Someone still in the game walks out: they count as out (role revealed, no points this game),
+// and the round carries on without them — exactly as if they'd been voted out.
+function forfeit(room, id) {
+  const g = room.game;
+  if (!g || g.phase === "over" || !g.alive.includes(id)) return;
+  (g.left ||= {})[id] = true;
+  g.alive = g.alive.filter((x) => x !== id);
+  g.outRoles[id] = g.roles[id];
+  delete g.votes[id];
+  for (const [voter, target] of Object.entries(g.votes)) if (target === id) delete g.votes[voter];
+  if (g.candidates) g.candidates = g.candidates.filter((x) => x !== id);
+  const w = rules.winner(g.alive, g.roles);
+  if (w) return endGame(room, w);
+  if (g.phase === "clue") {
+    const i = g.turnOrder.indexOf(id);
+    if (i > g.turnIdx) g.turnOrder.splice(i, 1);
+    else if (i === g.turnIdx) { g.turnOrder.splice(i, 1); startTurn(room); }
+  } else if (g.phase === "whiteguess" && g.lastResult?.id === id) return whiteGuessed(room, null);
+  else if (g.phase === "vote" && g.candidates && g.candidates.length < 2) g.candidates = null; // a tied player left: everyone is votable again
+}
+
 function finishOrContinue(room) {
   const g = room.game;
   const w = rules.winner(g.alive, g.roles);
@@ -586,6 +619,7 @@ function endGame(room, winner) {
   g.phase = "over";
   g.winner = winner;
   for (const [id, pts] of Object.entries(rules.points(winner, g.roles, g.alive))) {
+    if (g.left && g.left[id]) continue; // left mid-game: no points
     const p = room.players.get(id);
     if (p) p.score += pts;
   }
@@ -643,6 +677,7 @@ function view(room, pid) {
     me: !myRole ? { spectator: true } : myRole === "white" ? { white: true, hint: g.whiteHint ? g.hintWord : null } : { word: g.words[myRole] },
     reveal: g.phase === "over" ? { roles: g.roles, words: g.words, category: g.category } : null,
     whiteId: g.phase === "whiteguess" ? g.lastResult.id : null,
+    left: Object.keys(g.left || {}),
   };
   return v;
 }
@@ -800,6 +835,9 @@ io.on("connection", (socket) => {
   function joinRoom(room, name, token, avatar, country) {
     const back = room.players.get(token);
     if (back) { if (country !== undefined) back.country = okCountry(country) ? country : null; return attach(room, back); } // reconnect: same seat, same word
+    if (room.players.size >= MAX_PLAYERS && room.system && inLobby(room)) { // a person takes an AI player's seat
+      const bot = [...room.players.values()].find((p) => p.bot); if (bot) room.players.delete(bot.id);
+    }
     if (room.players.size >= MAX_PLAYERS) return fail("This room is full (16 players).");
     attach(room, seat(room, token, name, avatar, country));
   }
@@ -963,8 +1001,8 @@ io.on("connection", (socket) => {
   socket.on("leave", () => {
     const { room, p } = ctx();
     if (!room || !p) return;
-    // No walking out mid-game while you're still in it; once voted out you may go.
-    if (!inLobby(room) && room.game.alive.includes(p.id)) return;
+    // Walking out mid-game while still in it counts as being out (see forfeit).
+    if (!inLobby(room) && room.game.alive.includes(p.id)) forfeit(room, p.id);
     p.sockets.delete(socket.id);
     socket.leave(room.code);
     socket.data.code = null;

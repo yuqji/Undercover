@@ -506,14 +506,30 @@ async function main() {
     await until(() => L.s.connected, "lone");
     L.s.emit("join", { code: hr.code, name: "Lone", token: L.token });
     await until(() => L.state, "lone joins house room");
+    ok("as soon as a person walks into a house room, AI players fill it to 4", () => {
+      assert.equal(L.state.players.length, 4); assert.equal(L.state.players.filter((p) => p.bot).length, 3);
+    });
+    const M = phone("Mo");
+    await until(() => M.s.connected, "mo");
+    M.s.emit("join", { code: hr.code, name: "Mo", token: M.token });
+    await until(() => M.state && L.state.players.some((p) => p.name === "Mo"), "mo joins");
+    ok("each new person takes an AI player's seat", () => {
+      assert.equal(L.state.players.length, 4); assert.equal(L.state.players.filter((p) => p.bot).length, 2);
+    });
     ok("a person in an empty house room waits at most a minute", () => assert.ok(hr.autoAt - Date.now() <= 60 * 1000 * 0.02 + 5));
     await until(() => hr.game && hr.game.phase !== "over", "house game starts", 8000);
     ok("when the clock runs out, AI players fill the seats and the game starts", () => {
       const ps = [...hr.players.values()];
-      assert.equal(ps.filter((p) => !p.bot).length, 1);
-      assert.ok(ps.length >= 4 && ps.filter((p) => p.bot).length >= 3);
+      assert.equal(ps.filter((p) => !p.bot).length, 2);
+      assert.ok(ps.length === 4 && ps.filter((p) => p.bot).length === 2);
     });
-    L.s.close();
+    M.s.emit("leave");
+    await until(() => !hr.game.alive.includes(M.token), "mo leaves mid-game");
+    ok("leaving mid-game counts as out: role shown, marked as left", () => {
+      assert.ok(hr.game.outRoles[M.token]); assert.ok(hr.game.left[M.token]);
+    });
+    ok("…and the game carries on (or ends if that decides it)", () => assert.ok(hr.game.phase === "over" || hr.game.alive.length === 3));
+    L.s.close(); M.s.close();
   }
 
   for (const p of [...P, X, Y, Z]) p.s.close();
