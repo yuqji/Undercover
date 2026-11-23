@@ -195,13 +195,17 @@ const PACKS = {
   },
 };
 
-// Flat list: { id, a, b, pack, hint }
+// Chinese packs (words_zh.txt) join the same catalog, marked lang: "zh".
+Object.assign(PACKS, require("./words_zh").PACKS);
+for (const p of Object.values(PACKS)) p.lang = p.lang || "en";
+
+// Flat list: { id, a, b, pack, hint, lang }
 const ALL = [];
 for (const [packId, pack] of Object.entries(PACKS)) {
   const groups = pack.groups || { [pack.name]: pack.pairs };
   for (const [hint, pairs] of Object.entries(groups))
-    pairs.forEach(([a, b], i) => ALL.push({ id: `${packId}:${hint}:${i}`, a, b, pack: packId, hint }));
+    pairs.forEach(([a, b], i) => ALL.push({ id: `${packId}:${hint}:${i}`, a, b, pack: packId, hint, lang: pack.lang }));
 }
-const CATALOG = Object.entries(PACKS).map(([id, p]) => ({ id, name: p.name, blurb: p.blurb, count: ALL.filter((w) => w.pack === id).length }));
+const CATALOG = Object.entries(PACKS).map(([id, p]) => ({ id, name: p.name, blurb: p.blurb, lang: p.lang, count: ALL.filter((w) => w.pack === id).length }));
 
 module.exports = { PACKS, ALL, CATALOG };

@@ -886,4 +886,6 @@ for (const line of TEXT.split("\n")) {
   if (i < 0) continue;
   MAP[line.slice(0, i).trim().toLowerCase()] = line.slice(i + 1).trim().split(/\s+/).filter(Boolean);
 }
+// Chinese clue words come with the Chinese packs (words_zh.txt).
+for (const [w, list] of Object.entries(require("./words_zh").ASSOC)) MAP[w.toLowerCase()] = list;
 module.exports = MAP;

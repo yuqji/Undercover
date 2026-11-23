@@ -30,7 +30,9 @@ function fits(clue, word) {
   return 0;
 }
 
-function botName(taken) {
+const BOT_NAMES_ZH = ["小白", "豆豆", "阿乐", "糖糖", "大壮", "米粒", "小鱼", "团子", "阿星", "饺饺", "可乐", "毛毛", "七七", "皮皮", "旺仔", "小新"];
+function botName(taken, lang) {
+  if (lang === "zh") { const free = BOT_NAMES_ZH.filter((n) => !taken.includes(n)); return free.length ? rand(free) : "电脑" + (taken.length + 1); }
   const lower = new Set(taken.map((n) => n.toLowerCase()));
   const free = BOT_NAMES.filter((n) => !lower.has(n.toLowerCase()));
   if (free.length) return rand(free);

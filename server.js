@@ -137,6 +137,7 @@ app.get("/api/rooms", (_req, res) => {
       code: r.code,
       owner: r.players.get(r.ownerId)?.name || "",
       house: !!r.system,
+      lang: r.settings.lang || "en",
       pubs: here.filter((p) => !p.bot).map((p) => p.pub || pubId(p.id)), // lets a viewer hide rooms with people they blocked
       packIds: r.settings.packs,
       need: Math.max(0, rules.minPlayers(r.settings) - here.length), // players still needed to start
@@ -199,12 +200,17 @@ const hasOutsideLink = (t) => hasLink(String(t || "").replace(OWN_LINK_RE, " "))
 const cleanName = (n) => String(n || "").replace(/[\u0000-\u001f<>]/g, "").replace(/\s+/g, " ").trim().slice(0, NAME_MAX);
 
 // The room owner's choices: undercover count, Mr. White and word packs (any mix, at least one).
+const LANGS = ["en", "zh"];
+const basicPack = (lang) => (lang === "zh" ? "zh_basic" : "basic");
 function applySettings(room, s) {
+  // Language first: switching it swaps the word packs over to that language.
+  if (LANGS.includes(s.lang) && s.lang !== room.settings.lang) { room.settings.lang = s.lang; room.settings.packs = [basicPack(s.lang)]; }
   if (s.undercovers === "auto" || [1, 2, 3, 4].includes(s.undercovers)) room.settings.undercovers = s.undercovers;
   if (typeof s.mrWhite === "boolean") room.settings.mrWhite = s.mrWhite;
   if (typeof s.whiteHint === "boolean") room.settings.whiteHint = s.whiteHint;
   if (Array.isArray(s.packs)) {
-    const valid = s.packs.filter((id) => typeof id === "string" && WORDS.PACKS[id]);
+    const lang = room.settings.lang || "en";
+    const valid = s.packs.filter((id) => typeof id === "string" && WORDS.PACKS[id] && WORDS.PACKS[id].lang === lang);
     if (valid.length) room.settings.packs = [...new Set(valid)]; // an empty choice keeps the current packs
   }
 }
@@ -214,7 +220,7 @@ function makeRoom(ownerId) {
     code: newCode(),
     ownerId, // the room owner only picks settings; the game itself runs automatically
     players: new Map(), // id -> {id,name,connected,sockets:Set,score,joinedAt,ready,dropTimer}
-    settings: { undercovers: "auto", mrWhite: false, whiteHint: true, packs: ["basic"], visibility: "private" },
+    settings: { undercovers: "auto", mrWhite: false, whiteHint: true, packs: ["basic"], visibility: "private", lang: "en" },
     usedPairs: new Set(),
     game: null,
     gameNo: 0,
@@ -266,22 +272,25 @@ function removePlayer(room, id) {
 // House rooms: the site keeps PUBLIC_POOL of its own public rooms open to join (players' own public
 // rooms don't count and have no limit), but adds them one at a time — at least HOUSE_GAP seconds apart — so their start clocks are spread out instead of all
 // starting together. When one fills up or starts its game, a replacement follows (also staggered).
-const PUBLIC_POOL = Number(process.env.PUBLIC_POOL ?? 3);
+const PUBLIC_POOL = Number(process.env.PUBLIC_POOL ?? 3); // English house rooms
+const ZH_POOL = Number(process.env.ZH_POOL ?? 2); // Chinese house rooms
+const POOLS = { en: PUBLIC_POOL, zh: ZH_POOL };
 const HOUSE_GAP = Number(process.env.HOUSE_GAP ?? 60);
-let lastHouseAt = 0, houseNext = null;
-function randomPacks(avoid = []) {
-  const ids = Object.keys(WORDS.PACKS).sort(() => Math.random() - 0.5);
+const lastHouseAt = {}, houseNext = {};
+function randomPacks(lang = "en", avoid = []) {
+  const ids = Object.keys(WORDS.PACKS).filter((id) => WORDS.PACKS[id].lang === lang).sort(() => Math.random() - 0.5);
   const fresh = ids.filter((id) => !avoid.includes(id));
   return (fresh.length ? fresh : ids).slice(0, 1); // one theme per house room, different from the others open
 }
 const housePacksInUse = (except) => [...rooms.values()].filter((r) => r.system && r !== except).flatMap((r) => r.settings.packs);
-function makeHouseRoom() {
+function makeHouseRoom(lang = "en") {
   const room = makeRoom(null);
   room.system = true;
   room.settings.visibility = "public";
-  room.settings.packs = randomPacks(housePacksInUse());
+  room.settings.lang = lang;
+  room.settings.packs = randomPacks(lang, housePacksInUse());
   rooms.set(room.code, room);
-  lastHouseAt = Date.now();
+  lastHouseAt[lang] = Date.now();
   checkAutoStart(room);
   return room;
 }
@@ -292,24 +301,27 @@ function resetHouseRoom(room) {
   room.ownerId = null;
   room.chat = [];
   room.autoFilled = false; room.lastPeople = 0;
-  room.settings = { undercovers: "auto", mrWhite: false, whiteHint: true, packs: randomPacks(housePacksInUse(room)), visibility: "public" };
+  const lang = room.settings.lang || "en";
+  room.settings = { undercovers: "auto", mrWhite: false, whiteHint: true, packs: randomPacks(lang, housePacksInUse(room)), visibility: "public", lang };
   room.touched = Date.now();
 }
 function maintainHouseRooms() {
   const joinable = (r) => inLobby(r) && r.players.size < MAX_PLAYERS;
-  let open = [...rooms.values()].filter((r) => r.system && joinable(r));
-  // People left and there are more empty house rooms than needed: close the extras.
-  for (const r of open.filter((x) => !x.players.size)) {
-    if (open.length <= PUBLIC_POOL) break;
-    rooms.delete(r.code);
-    open = open.filter((x) => x !== r);
-  }
-  if (open.length < PUBLIC_POOL) {
-    const wait = lastHouseAt + ms(HOUSE_GAP) - Date.now();
-    const made = !open.length || wait <= 0;
-    if (made) { makeHouseRoom(); open.push(null); }
-    clearTimeout(houseNext); houseNext = null;
-    if (open.length < PUBLIC_POOL) houseNext = setTimeout(maintainHouseRooms, (made ? ms(HOUSE_GAP) : wait) + 50);
+  for (const [lang, pool] of Object.entries(POOLS)) {
+    let open = [...rooms.values()].filter((r) => r.system && (r.settings.lang || "en") === lang && joinable(r));
+    // People left and there are more empty house rooms than needed: close the extras.
+    for (const r of open.filter((x) => !x.players.size)) {
+      if (open.length <= pool) break;
+      rooms.delete(r.code);
+      open = open.filter((x) => x !== r);
+    }
+    if (open.length < pool) {
+      const wait = (lastHouseAt[lang] || 0) + ms(HOUSE_GAP) - Date.now();
+      const made = !open.length || wait <= 0;
+      if (made) { makeHouseRoom(lang); open.push(null); }
+      clearTimeout(houseNext[lang]); houseNext[lang] = null;
+      if (open.length < pool) houseNext[lang] = setTimeout(maintainHouseRooms, (made ? ms(HOUSE_GAP) : wait) + 50);
+    }
   }
   for (const r of rooms.values()) if (r.system && inLobby(r) && !r.autoTimer) checkAutoStart(r); // e.g. after a game ends
 }
@@ -317,7 +329,7 @@ function maintainHouseRooms() {
 /* ---------- auto start: everyone Ready → 3, 2, 1 ---------- */
 function addBotTo(room) {
   const id = "bot-" + Math.random().toString(36).slice(2, 10);
-  const name = Bots.botName([...room.players.values()].map((x) => x.name));
+  const name = Bots.botName([...room.players.values()].map((x) => x.name), room.settings.lang);
   const bot = { id, name, avatar: freeAvatar(room), bot: true, connected: true, sockets: new Set(), score: 0, joinedAt: Date.now(), ready: true, dropTimer: null };
   room.players.set(id, bot);
   return bot;
@@ -861,6 +873,7 @@ io.on("connection", (socket) => {
     const room = rooms.get(code);
     if (!room) return fail(`No room called ${code || "that"}. Check the code and try again.`);
     if (badToken(token)) return fail("Refresh the page and try again.");
+    if (room.banned && room.banned.has(token)) return fail("The room owner removed you from this room.");
     joinRoom(room, name, token, avatar, country);
   });
 
@@ -943,12 +956,22 @@ io.on("connection", (socket) => {
     broadcast(room);
   });
 
+  // The room owner removes a player — in the lobby, or mid-game (they count as out, role shown).
+  // A removed person can't come back into this room.
   socket.on("kick", (id) => {
     const { room, p } = ctx();
-    if (!room || room.ownerId !== p?.id || id === p.id || !inLobby(room)) return;
+    if (!room || room.ownerId !== p?.id || id === p.id) return;
     const k = room.players.get(id);
     if (!k) return;
-    for (const sid of k.sockets) io.to(sid).emit("kicked");
+    if (!k.bot) (room.banned ||= new Set()).add(id);
+    for (const sid of k.sockets) { io.to(sid).emit("kicked"); const so = io.sockets.sockets.get(sid); if (so) { so.leave(room.code); so.data.code = null; } }
+    if (!inLobby(room) && room.game && id in room.game.roles) {
+      forfeit(room, id);
+      k.sockets.clear(); k.connected = false; // keeps the seat (shown as out) until this game ends
+      if (room.game?.phase === "over") scheduleDrop(room, k);
+      broadcast(room);
+      return;
+    }
     removePlayer(room, id);
     checkAutoStart(room);
     broadcast(room);

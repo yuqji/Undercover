@@ -92,7 +92,8 @@ const B = require("../bots");
 ok("every word has at least 5 usable AI clues", () => {
   for (const w of WORDS.ALL) for (const [x, y] of [[w.a, w.b], [w.b, w.a]]) {
     const usable = B.assocOf(x).filter((c) => !R.checkClue(c, x, []).error && !R.revealsWord(c, y));
-    assert.ok(usable.length >= 5, `${x} has only ${usable.length}`);
+    const need = w.lang === "zh" ? 3 : 5; // Chinese clues can't reuse any character of the word, so lists run shorter
+    assert.ok(usable.length >= need, `${x} has only ${usable.length}`);
   }
 });
 ok("AI clues are always legal and never name either word (2,000 tries)", () => {
@@ -114,7 +115,7 @@ ok("AI civilians usually spot an obvious undercover", () => {
 /* ---------------- integration ---------------- */
 async function main() {
   process.env.TIME_SCALE = "0.02"; // 45s clue → 0.9s, 30s vote → 0.6s, etc.
-  process.env.PUBLIC_POOL = "1"; // the old one-at-a-time behaviour; the staggered pool is checked separately
+  process.env.PUBLIC_POOL = "1"; process.env.ZH_POOL = "0"; // the old one-at-a-time behaviour; the staggered pool is checked separately
   process.env.PRIVATE_WAIT = "1000"; // keep the private-room clock out of the way; tests press Start now
   const { server, rooms } = require("../server");
   await new Promise((r) => server.listen(0, r));
@@ -498,6 +499,53 @@ async function main() {
     r1 = await emitAck(civ, "chat", "come join https://undercover-party.onrender.com/r/ABCD");
     ok("…but links to this game itself are fine", () => assert.ok(r1.ok));
   }
+
+  console.log("Owner removes a player mid-game");
+  {
+    const O = phone("Olly"), K = phone("Kat");
+    await until(() => O.s.connected && K.s.connected, "ok");
+    O.s.emit("create", { token: O.token, name: "Olly", visibility: "private" });
+    await until(() => O.state, "o room");
+    K.s.emit("join", { code: O.state.code, name: "Kat", token: K.token });
+    await until(() => K.state && O.state.players.length === 2, "k joins");
+    for (let i = 0; i < 3; i++) O.s.emit("addBot");
+    await until(() => O.state.players.length === 5, "bots");
+    O.s.emit("start");
+    await until(() => O.state.game && O.state.game.phase === "clue", "game on", 8000);
+    let kicked = false; K.s.on("kicked", () => (kicked = true));
+    O.s.emit("kick", K.token);
+    await until(() => kicked && !O.state.game.alive.includes(K.token), "kicked mid-game");
+    ok("the owner can remove a player mid-game: they're out and told so", () => assert.ok(O.state.game.outRoles[K.token]));
+    let refused = null; K.s.once("problem", (m) => (refused = m));
+    K.s.emit("join", { code: O.state.code, name: "Kat", token: K.token });
+    await until(() => refused, "rejoin refused");
+    ok("…and can't rejoin that room", () => assert.match(refused, /removed/));
+    O.s.close(); K.s.close();
+  }
+
+  console.log("Chinese rooms");
+  {
+    const C = phone("小明");
+    await until(() => C.s.connected, "c");
+    C.s.emit("create", { token: C.token, name: "小明", visibility: "private", settings: { lang: "zh" } });
+    await until(() => C.state, "zh room");
+    ok("a room can be created in Chinese, with Chinese word packs", () => {
+      assert.equal(C.state.settings.lang, "zh"); assert.deepEqual(C.state.settings.packs, ["zh_basic"]);
+    });
+    C.s.emit("settings", { packs: ["basic", "zh_food"] });
+    await until(() => C.state.settings.packs.includes("zh_food"), "zh packs");
+    ok("only packs in the room's language can be picked", () => assert.deepEqual(C.state.settings.packs, ["zh_food"]));
+    for (let i = 0; i < 3; i++) C.s.emit("addBot");
+    await until(() => C.state.players.length === 4, "zh bots");
+    ok("AI players in a Chinese room get Chinese names", () => assert.ok(C.state.players.filter((p) => p.bot).every((p) => /[\u4e00-\u9fff]/.test(p.name))));
+    C.s.emit("start");
+    await until(() => C.state.game && C.state.game.me, "zh game", 8000);
+    ok("the secret words are Chinese", () => assert.ok(/[\u4e00-\u9fff]/.test(C.state.game.me.word || "白")));
+    C.s.close();
+  }
+  ok("Chinese clues can't use a character of your own word", () => {
+    assert.ok(R.checkClue("水饺", "饺子").error); assert.ok(!R.checkClue("包馅", "饺子").error);
+  });
 
   console.log("House rooms fill with AI");
   {

@@ -5,7 +5,12 @@ const norm = (s) =>
     .toLowerCase()
     .normalize("NFKD")
     .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]/g, "");
+    .replace(/[^a-z0-9\u3400-\u9fff]/g, "");
+// Chinese (and other CJK) words are checked by characters, not English word forms.
+const isCJK = (s) => /[\u3400-\u9fff]/.test(String(s || ""));
+// Characters too common to count as "giving away" a Chinese word (子 in 饺子, 大 in 大象…).
+const CJK_FILLER = new Set("子儿的了头人大小一不是个们之老阿球".split(""));
+const cjkShares = (clue, word) => { const c = norm(clue); return [...norm(word)].some((ch) => /[\u3400-\u9fff]/.test(ch) && !CJK_FILLER.has(ch) && c.includes(ch)); };
 
 // Every plausible base form of a word: tigers→tiger, coffees→coffee, boxes→box,
 // cherries→cherry, raised→raise, dancing→dance/danc. Two words match if any forms overlap.
@@ -35,6 +40,8 @@ function revealsWord(clue, word) {
   if (!word) return false;
   const c = norm(clue);
   if (!c) return false;
+  // Chinese: the usual house rule — your clue may not use any (meaningful) character of your word.
+  if (isCJK(word)) return c.includes(norm(word)) || cjkShares(c, word);
   const whole = norm(word);
   if (sameWord(c, whole)) return true;
   if (whole.length >= 3 && c.includes(whole)) return true;
@@ -75,9 +82,13 @@ const GAME_TERMS = new Set("undercover undercovers civilian civilians mrwhite im
 // and words closely associated with it (the same list the AI uses for clues).
 function chatLeaks(text, word, related = []) {
   if (!word) return false;
+  if (isCJK(word)) { // Chinese: block the word itself, or a close association, anywhere in the message
+    const t = norm(text);
+    return t.includes(norm(word)) || related.some((r) => norm(r).length >= 2 && t.includes(norm(r)));
+  }
   const whole = norm(word);
   if (whole.length >= 4 && norm(text).includes(whole)) return true;
-  const parts = String(word).split(/[\s-]+/).map(norm).filter((x) => x.length >= 3);
+  const parts = String(word).split(/[\s-]+/).map(norm).filter((x) => x.length >= 3 && !CHAT_STOP.has(x)); // "Lord of the Rings" must not block "the"
   const tokens = String(text).split(/[^\p{L}\p{N}'’-]+/u).map(norm).filter(Boolean);
   for (const t of tokens) {
     if (sameWord(t, whole)) return true;
@@ -152,4 +163,4 @@ function points(win, roles, alive) {
   return out;
 }
 
-module.exports = { CLUE_MAX, norm, stem, sameWord, revealsWord, chatLeaks, checkClue, checkSetup, autoUndercovers, undercoverCount, minPlayers, speakingOrder, tally, winner, points };
+module.exports = { CLUE_MAX, isCJK, norm, stem, sameWord, revealsWord, chatLeaks, checkClue, checkSetup, autoUndercovers, undercoverCount, minPlayers, speakingOrder, tally, winner, points };
