@@ -5,15 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#f4f4f2">
 <base href="/">
-<title>Undercover</title>
+<title>Undercover – Free Online Word Party Game (Who Is the Undercover / 谁是卧底)</title>
+<link rel="canonical" href="https://undercover-party.onrender.com/">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
-<meta property="og:image" content="/icon-512.png">
-<meta property="og:title" content="Undercover">
-<meta name="description" content="One of you has a slightly different word. Find them. A free online party word game.">
+<meta name="description" content="Play Undercover (Who Is the Undercover / 谁是卧底) free online with friends. Everyone gets a secret word, one player gets a slightly different one — give clues, vote, and find the undercover. No download, no sign-up, works on phones.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://undercover-party.onrender.com/">
+<meta property="og:site_name" content="Undercover">
+<meta property="og:title" content="Undercover – Free Online Word Party Game">
+<meta property="og:description" content="One of you has a slightly different word. Find them. Free, no download, play with friends on any phone.">
+<meta property="og:image" content="https://undercover-party.onrender.com/icon-512.png">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"Undercover","alternateName":["Who Is the Undercover","Who's the Undercover","谁是卧底","Undercover word game"],"url":"https://undercover-party.onrender.com/","description":"A free online multiplayer word party game. Everyone gets a secret word except the Undercover, who gets a similar one. Give one clue each, vote, and find the odd one out.","genre":["Party game","Word game","Social deduction"],"gamePlatform":"Web browser","applicationCategory":"Game","operatingSystem":"Any","playMode":"MultiPlayer","numberOfPlayers":{"@type":"QuantitativeValue","minValue":3,"maxValue":16},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"image":"https://undercover-party.onrender.com/icon-512.png"}</script>
 <meta name="theme-color" content="#2563eb">
 <link rel="stylesheet" href="fonts/fonts.css">
 <style>
@@ -183,7 +190,12 @@ h1,h2,.disp,.idcard .w,.who,.lobbycode .big,.count,.clock,.clues li b,.words b,.
 .pcard{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--card)}
 .pcard.cur{border-color:var(--pink);box-shadow:0 0 0 2px #dbe6ff}
 .pcard.picked{border-color:var(--pink);box-shadow:inset 4px 0 0 var(--pink)}
-.pcard.out{opacity:.5}
+.pcard.out{--oc:#2563eb;--ob:#eef3ff;border-color:var(--oc);background:var(--ob);box-shadow:inset 4px 0 0 var(--oc)}
+.pcard.out.o-und{--oc:#dc2626;--ob:#fdeeee}
+.pcard.out.o-white{--oc:#d97706;--ob:#fff5e1}
+.pcard.out .tag.out{background:var(--oc);color:#fff}
+.pcard.out .pname b{color:var(--ink)}
+.pcard.out .outav{display:inline-flex;border-radius:50%;box-shadow:0 0 0 3px var(--oc)}
 .ptop{display:flex;align-items:center;gap:14px;padding:14px 16px}
 .avatar{flex:none;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:20px}
 .pinfo{flex:1}
@@ -472,7 +484,7 @@ button:active{transform:scale(.96)}
 .socialcard{position:relative;width:min(520px,100%);margin:0;box-shadow:0 20px 60px rgba(0,0,0,.25)}.frtabs{margin:12px 0 4px}.frlist{max-height:min(420px,55vh);overflow:auto}
 .frlist .nm{flex:1;min-width:0}.fst{font-size:13px;font-weight:600;color:var(--soft)}.fst.on{color:var(--pink)}.fst.on:before{content:"● ";font-size:10px}
 .frlist .rm{font-size:12px;color:var(--soft)}.frlist .empty{color:var(--soft);font-weight:600;justify-content:center;padding:22px 0}
-.foot{max-width:1240px;margin:28px auto 0;text-align:center}.foot .linkbtn{color:var(--soft);font-size:14px}
+.foot{max-width:1240px;margin:28px auto 0;text-align:center}.foot .linkbtn{color:var(--soft);font-size:14px;text-decoration:none}.foot{color:var(--soft)}
 .ctform{display:flex;flex-direction:column;gap:12px;margin-top:12px}.ctform label{display:flex;flex-direction:column;gap:6px;font-weight:800;font-size:14px}
 .ctform input,.ctform textarea{font:500 16px Inter,sans-serif;border:2px solid var(--line);border-radius:14px;padding:10px 12px;background:#fff;color:var(--ink);resize:vertical}
 .ctform input:focus,.ctform textarea:focus{outline:none;border-color:var(--pink)}.ctdone{font-weight:700;font-size:17px;margin:14px 0 18px}
@@ -491,7 +503,7 @@ button:active{transform:scale(.96)}
 </style>
 </head>
 <body>
-<div class="wrap" id="app"></div>
+<div class="wrap" id="app"><noscript><h1>Undercover – free online word party game</h1><p>Everyone gets the same secret word except the Undercover, who gets a slightly different one. Give one clue each, vote, and find the odd one out. Also known as Who Is the Undercover or 谁是卧底. Please turn on JavaScript to play. <a href="/how-to-play.html">How to play</a></p></noscript></div>
 <div class="fx" id="fx" aria-hidden="true"></div>
 <div class="chatdock" id="chatDock"></div>
 <div class="notes" id="notes" aria-live="polite"></div>
@@ -699,7 +711,7 @@ function home() {
   ${rulesBlock()}</div>
   <aside class="side"><div class="card"><h2 style="font-size:22px">Public rooms</h2><div id="pub"><p class="muted" style="margin:8px 0 0">Looking for rooms…</p></div></div>
 </aside></div>
-  <footer class="foot"><button type="button" class="linkbtn" data-contact>Contact us</button></footer>${setModal && setModal.mode === "create" ? settingsModal() : ""}`;
+  <footer class="foot"><button type="button" class="linkbtn" data-contact>Contact us</button> · <a class="linkbtn" href="/how-to-play.html">Rules</a> · <a class="linkbtn" href="/privacy.html">Privacy</a> · <a class="linkbtn" href="/terms.html">Terms</a></footer>${setModal && setModal.mode === "create" ? settingsModal() : ""}`;
   const cd = $("#cd");
   // You pick your name once you're in the room; a name you chose before on this device is reused.
   const go = (ev, extra) => { joining = true; render(); socket.emit(ev, { ...whoAmI(), token, ...extra }); };
@@ -1423,10 +1435,10 @@ function playerTable() {
       : out ? '<span class="pass">—</span>' : '<span class="pass">waiting for turn</span>';
     const earlier = mineClues.filter((c) => c.round !== g.round).map((c) => (c.word ? esc(c.word) : "Skipped"));
     const canVote = voting && g.targets.includes(p.id), mine = g.myVote === p.id;
-    return `<li class="pcard ${out ? "out" : ""} ${typing ? "cur" : ""} ${mine ? "picked" : ""}">
+    return `<li class="pcard ${out ? "out o-" + (g.outRoles?.[p.id] || "civ") : ""} ${typing ? "cur" : ""} ${mine ? "picked" : ""}">
       <div class="ptop">
         ${turnNo ? `<span class="turnno ${typing ? "now" : done ? "done" : ""}" title="Speaks ${turnNo}${["st", "nd", "rd"][turnNo - 1] || "th"} this round">${turnNo}</span>` : '<span class="turnno blank"></span>'}
-        ${out ? `<span class="avatar rlav">${roleLogo(g.outRoles?.[p.id] || "civ")}</span>` : (p.id === S.you ? `<button type="button" class="avbtn" id="myAv" aria-label="Change your look" title="Change your look">${avatarEl(p.avatar)}</button>` : avatarEl(p.avatar))}
+        ${out ? `<span class="outav">${avatarEl(p.avatar)}</span>` : (p.id === S.you ? `<button type="button" class="avbtn" id="myAv" aria-label="Change your look" title="Change your look">${avatarEl(p.avatar)}</button>` : avatarEl(p.avatar))}
         <div class="pinfo">
           <div class="pname"><b>${esc(p.name)}</b>${p.id === S.you ? '<span class="tag you">You</span>' : ""}${p.bot ? '<span class="tag ai">AI</span>' : ""}${!p.bot && !p.connected ? '<span class="tag off">Offline</span>' : ""}${typing ? '<span class="tag turn">Speaking</span>' : ""}${out ? `<span class="tag out">Out · ${roleName(g.outRoles?.[p.id])}</span>` : ""}</div>
           <div class="pword">${big}</div>
