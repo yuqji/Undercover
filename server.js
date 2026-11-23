@@ -68,6 +68,29 @@ app.post("/api/contact", express.json({ limit: "16kb" }), async (req, res) => {
   res.json({ ok: true });
 });
 
+/* ---------- accounts (optional Google sign-in through Supabase) ---------- */
+// Set SUPABASE_URL and SUPABASE_ANON_KEY on the host to turn sign-in on. The anon key is the
+// public "browser" key; the page needs it too. Signed-in players get a public ID tied to their
+// account instead of their browser, so friends follow them to any device.
+const SUPA_URL = (process.env.SUPABASE_URL || "").trim().replace(/\/+$/, "").replace(/\/rest\/v1$/, ""); // accepts the URL with or without /rest/v1/
+const SUPA_KEY = process.env.SUPABASE_ANON_KEY || "";
+app.get("/api/config", (_req, res) => res.json({ supabaseUrl: SUPA_URL || null, supabaseKey: SUPA_KEY || null }));
+const userCache = new Map(); // access token -> { id, t }
+async function verifyUser(access) {
+  if (!SUPA_URL || !SUPA_KEY || typeof access !== "string" || access.length > 4000) return null;
+  const hit = userCache.get(access);
+  if (hit && Date.now() - hit.t < 10 * 60e3) return hit.id;
+  try {
+    const r = await fetch(SUPA_URL + "/auth/v1/user", { headers: { Authorization: "Bearer " + access, apikey: SUPA_KEY } });
+    if (!r.ok) return null;
+    const u = await r.json();
+    if (!u || !u.id) return null;
+    userCache.set(access, { id: u.id, t: Date.now() });
+    if (userCache.size > 5000) userCache.delete(userCache.keys().next().value);
+    return u.id;
+  } catch { return null; }
+}
+
 /* ---------- friends ---------- */
 // Each browser has a private token (it holds your seat). Friends see only a public ID derived
 // from it, which can't be turned back into the token. Friend lists live in each browser;
@@ -95,7 +118,7 @@ app.get("/api/rooms", (_req, res) => {
       code: r.code,
       owner: r.players.get(r.ownerId)?.name || "",
       house: !!r.system,
-      pubs: here.filter((p) => !p.bot).map((p) => pubId(p.id)), // lets a viewer hide rooms with people they blocked
+      pubs: here.filter((p) => !p.bot).map((p) => p.pub || pubId(p.id)), // lets a viewer hide rooms with people they blocked
       packIds: r.settings.packs,
       need: Math.max(0, rules.minPlayers(r.settings) - here.length), // players still needed to start
       startsIn: r.autoAt ? Math.max(0, r.autoAt - Date.now()) : null, // ms until the automatic start
@@ -211,9 +234,10 @@ function removePlayer(room, id) {
 }
 
 /* ---------- house rooms: public rooms that are always there to join ---------- */
-// So the home page never shows an empty list, the server keeps PUBLIC_POOL open public rooms
-// waiting for players, each with one random word pack. The first person in runs it.
-const PUBLIC_POOL = Number(process.env.PUBLIC_POOL ?? 3);
+// So the home page never shows an empty list, the server keeps one open public room waiting for
+// players (one random word pack). A new one is added only when no public room is left to join —
+// the open one filled up or started its game. The first person in a house room runs it.
+const PUBLIC_POOL = Number(process.env.PUBLIC_POOL ?? 1);
 function randomPacks() {
   const ids = Object.keys(WORDS.PACKS).sort(() => Math.random() - 0.5);
   return ids.slice(0, 1); // one theme per house room
@@ -536,7 +560,7 @@ function scheduleDrop(room, p) {
 function view(room, pid) {
   const g = room.game;
   const players = sortedPlayers(room).map((p) => ({
-    id: p.id, pub: p.bot ? null : pubId(p.id), name: p.name, avatar: p.avatar ?? 0, named: !!(p.named || p.bot), connected: p.connected, score: p.score, ready: p.ready, bot: !!p.bot,
+    id: p.id, pub: p.bot ? null : p.pub || pubId(p.id), name: p.name, avatar: p.avatar ?? 0, named: !!(p.named || p.bot), connected: p.connected, score: p.score, ready: p.ready, bot: !!p.bot,
     inGame: !!(g && p.id in g.roles), alive: !!(g && g.alive.includes(p.id)),
   }));
   const here = players.filter((p) => p.connected).length;
@@ -624,15 +648,22 @@ io.on("connection", (socket) => {
   const fail = (msg) => socket.emit("problem", msg);
 
   // Friends: say who you are once connected, so friends can see you're online.
-  socket.on("hello", ({ token } = {}) => {
-    if (!token || typeof token !== "string" || token.length > 80 || socket.data.pub) return;
-    const me = pubId(token);
+  // Also sent again after signing in or out, with the account's access token.
+  socket.on("hello", async ({ token, access } = {}) => {
+    if (!token || typeof token !== "string" || token.length > 80) return;
+    const uid = access ? await verifyUser(access) : null;
+    const me = uid ? pubId("acct:" + uid) : pubId(token);
+    if (socket.data.pub === me) return socket.emit("me", { pub: me, account: !!uid });
+    if (socket.data.pub) { const old = online.get(socket.data.pub); if (old) { old.delete(socket.id); if (!old.size) online.delete(socket.data.pub); } }
     socket.data.pub = me;
+    socket.data.uid = uid;
     if (!online.has(me)) online.set(me, new Set());
     online.get(me).add(socket.id);
-    socket.emit("me", { pub: me });
+    socket.emit("me", { pub: me, account: !!uid });
     for (const x of pending.get(me) || []) if (Date.now() - x.t < 7 * 864e5) socket.emit(x.event, x.data);
     pending.delete(me);
+    const { room, p } = ctx();
+    if (room && p) { p.pub = me; broadcast(room); }
   });
   const sent = [];
   const tooFast = () => { const now = Date.now(); while (sent.length && now - sent[0] > 60e3) sent.shift(); if (sent.length >= 20) return true; sent.push(now); return false; };
@@ -671,6 +702,7 @@ io.on("connection", (socket) => {
   function attach(room, p) {
     socket.data.code = room.code;
     socket.data.pid = p.id;
+    if (socket.data.pub) p.pub = socket.data.pub;
     p.sockets.add(socket.id);
     p.connected = true;
     clearTimeout(p.dropTimer);

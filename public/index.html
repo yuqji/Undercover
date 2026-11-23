@@ -479,6 +479,13 @@ button:active{transform:scale(.96)}
 @media (max-width:640px){.frbtn .lbl{display:none}}
 .srow.sub{padding-left:22px}.srow .sl small{display:block;font-size:13px;font-weight:600;color:var(--soft)}
 .blk{color:var(--soft)!important;font-size:12px!important;margin-left:8px!important}
+.acbtn{display:inline-flex;align-items:center;gap:7px}.acbtn .avatar{width:22px;height:22px}.acbtn .lbl{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pfhead{display:flex;align-items:center;gap:14px;padding-right:44px}.pfhead .avatar{width:64px;height:64px}.pfhead h2{margin:0;font-size:24px}
+.pfstats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:18px}.pfstats div{background:var(--bg);border-radius:14px;padding:12px 8px;text-align:center}
+.pfstats b{display:block;font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}.pfstats span{font-size:12px;font-weight:700;color:var(--soft)}
+@media (max-width:640px){.acbtn .lbl{display:none}.pfstats{grid-template-columns:repeat(2,1fr)}}
+.turnno{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:800;background:var(--bg);color:var(--soft)}
+.turnno.now{background:var(--pink);color:#fff}.turnno.done{background:var(--ink);color:#fff}.turnno.blank{background:none}
 .brand{display:flex;align-items:center;gap:12px}.logo{width:44px;height:44px;border-radius:11px;flex:none}.logo.sm{width:26px;height:26px;border-radius:7px;vertical-align:-7px;margin-right:10px}
 </style>
 </head>
@@ -497,7 +504,7 @@ button:active{transform:scale(.96)}
    <li><svg viewBox="0 0 120 80" aria-hidden="true"><rect x="6" y="14" width="32" height="46" rx="6" fill="#fff" stroke="#1c1c1e" stroke-width="3"/><rect x="44" y="14" width="32" height="46" rx="6" fill="#fff" stroke="#1c1c1e" stroke-width="3"/><rect x="82" y="14" width="32" height="46" rx="6" fill="#2563eb" stroke="#2563eb" stroke-width="3"/><text x="22" y="42" text-anchor="middle" font-size="10" font-weight="800" fill="#1c1c1e">Tiger</text><text x="60" y="42" text-anchor="middle" font-size="10" font-weight="800" fill="#1c1c1e">Tiger</text><text x="98" y="42" text-anchor="middle" font-size="10" font-weight="800" fill="#fff">Lion</text></svg>
     <b>1 · Get a word</b><span>Everyone shares a word — except the <em>Undercover</em>, who gets a close one and doesn't know it.</span></li>
    <li><svg viewBox="0 0 120 80" aria-hidden="true"><path d="M14 12h92a8 8 0 0 1 8 8v30a8 8 0 0 1-8 8H50l-18 14v-14H14a8 8 0 0 1-8-8V20a8 8 0 0 1 8-8z" fill="#fff" stroke="#1c1c1e" stroke-width="3"/><text x="60" y="41" text-anchor="middle" font-size="15" font-weight="800" fill="#2563eb">stripes</text></svg>
-    <b>2 · Say one word</b><span>Your turn: 45 s to type one clue. Never your word.</span></li>
+    <b>2 · Give a clue</b><span>Your turn: 45 s to type a short clue (up to 20 characters). Never your word.</span></li>
    <li><svg viewBox="0 0 120 80" aria-hidden="true"><rect x="8" y="14" width="104" height="16" rx="8" fill="#fff" stroke="#1c1c1e" stroke-width="2"/><rect x="8" y="36" width="104" height="16" rx="8" fill="#eef4ff" stroke="#2563eb" stroke-width="2"/><rect x="80" y="37" width="30" height="14" rx="7" fill="#2563eb"/><text x="95" y="47" text-anchor="middle" font-size="8" font-weight="800" fill="#fff">Vote</text><rect x="8" y="58" width="104" height="16" rx="8" fill="#fff" stroke="#1c1c1e" stroke-width="2"/><circle cx="20" cy="22" r="5" fill="#1c1c1e"/><circle cx="20" cy="44" r="5" fill="#1c1c1e"/><circle cx="20" cy="66" r="5" fill="#1c1c1e"/></svg>
     <b>3 · Vote</b><span>30 s. Tap <em>Vote</em> on a player. Secret, and you can switch.</span></li>
    <li><svg viewBox="0 0 120 80" aria-hidden="true"><path d="M42 10h36v20a18 18 0 0 1-36 0z" fill="#2563eb"/><path d="M42 16H30a10 10 0 0 0 12 16M78 16h12a10 10 0 0 1-12 16" fill="none" stroke="#2563eb" stroke-width="4"/><rect x="54" y="46" width="12" height="12" fill="#2563eb"/><rect x="44" y="58" width="32" height="8" rx="3" fill="#1c1c1e"/></svg>
@@ -588,7 +595,7 @@ function whoAmI() {
 }
 const socket = io({ transports: ["websocket", "polling"] });
 socket.on("connect", () => {
-  socket.emit("hello", { token });
+  socket.emit("hello", { token, access: lastSession?.access_token });
   // Rejoin the same seat automatically (same word, same vote) after a dropped connection or reload.
   const saved = store.get("uc-room");
   const target = linkRoom && !S ? linkRoom : saved;
@@ -617,7 +624,7 @@ const rulesBlock = () => "";
 let soundOn = store.get("uc-sound") !== "off";
 const helpBtnRaw = `<button class="sm ghost" data-help type="button">How to play</button>`;
 const soundBtn = () => `<button class="sm ghost iconbtn" data-sound type="button" aria-pressed="${soundOn}" aria-label="Sound ${soundOn ? "on" : "off"}" title="Sound ${soundOn ? "on" : "off"}">${soundOn ? '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9.5a3.5 3.5 0 0 1 0 5M18 7a7 7 0 0 1 0 10"/></svg>' : '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>'}</button>`;
-const helpBtnFn = () => `<span class="row">${friendsBtn()}${soundBtn()}${helpBtnRaw}</span>`;
+const helpBtnFn = () => `<span class="row">${accountBtn()}${friendsBtn()}${soundBtn()}${helpBtnRaw}</span>`;
 const openRules = () => { $("#rulesM").hidden = false; $("#rulesX").focus(); };
 const closeRules = () => { $("#rulesM").hidden = true; };
 $("#rulesX").onclick = closeRules;
@@ -638,6 +645,8 @@ function render() {
   else game();
   app.querySelectorAll("[data-help]").forEach((b) => (b.onclick = openRules));
   app.querySelectorAll("[data-friends]").forEach((b) => (b.onclick = () => openSocial("friends")));
+  app.querySelectorAll("[data-signin]").forEach((b) => (b.onclick = signIn));
+  app.querySelectorAll("[data-profile]").forEach((b) => (b.onclick = () => openSocial("profile")));
   app.querySelectorAll("[data-contact]").forEach((b) => (b.onclick = () => openSocial("contact")));
   app.querySelectorAll("[data-sound]").forEach((b) => (b.onclick = () => { soundOn = !soundOn; store.set("uc-sound", soundOn ? "on" : "off"); if (soundOn) SFX.pop(); render(); }));
   if (lookOpen && S && S.game && S.game.phase !== "over") app.insertAdjacentHTML("beforeend", lookCard(S.players.find((p) => p.id === S.you) || {}));
@@ -946,7 +955,7 @@ let lookOpen = false;
 function bindLook() {
   const m = $("#myAv"); if (m) m.onclick = () => { if (S.game && S.game.phase !== "over") lookOpen = true; else { editingName = true; nameErr = ""; nameDraft = null; avDraft = null; } render(); };
   const x = $("#lookX"); if (x) x.onclick = () => { lookOpen = false; render(); };
-  app.querySelectorAll("[data-look]").forEach((b) => (b.onclick = () => { const a = +b.dataset.look; store.set("uc-avatar", String(a)); socket.emit("avatar", a); lookOpen = false; render(); }));
+  app.querySelectorAll("[data-look]").forEach((b) => (b.onclick = () => { const a = +b.dataset.look; store.set("uc-avatar", String(a)); socket.emit("avatar", a); saveProfile({ avatar: a }); lookOpen = false; render(); }));
 }
 function nameCard(me) {
   const first = !me.named;
@@ -978,7 +987,7 @@ function bindName() {
     const me = S.players.find((p) => p.id === S.you);
     socket.emit("rename", { name: v, avatar: curAv(me) }, (res) => {
       if (res && res.error) { nameErr = res.error; render(); $("#nameIn")?.focus(); return; }
-      store.set("uc-myname", res.name); store.set("uc-avatar", String(res.avatar)); avDraft = null; editingName = false; nameErr = ""; $("#nameIn")?.remove(); render();
+      store.set("uc-myname", res.name); store.set("uc-avatar", String(res.avatar)); saveProfile({ name: res.name, avatar: res.avatar }); avDraft = null; editingName = false; nameErr = ""; $("#nameIn")?.remove(); render();
     });
   };
 }
@@ -1063,6 +1072,7 @@ function moments(prev, st) {
     const r = g.reveal.roles[st.you];
     const won = r && ((g.winner === "civ" && r === "civ") || (g.winner === "imp" && r !== "civ") || (g.winner === "white" && r === "white"));
     setTimeout(() => { if (won) SFX.win(); else if (r) SFX.lose(); }, newOut ? 700 : 100);
+    if (r && SB && account) SB.rpc("record_game", { won: !!won, undercover: r !== "civ" }).then(() => pullProfile()).catch(() => {});
   }
 }
 
@@ -1074,7 +1084,7 @@ const loadJSON = (k, d) => { try { return JSON.parse(store.get(k)) || d; } catch
 let blocked = loadJSON("uc-blocked", {});
 let myPub = null, friends = loadJSON("uc-friends", {}), recent = loadJSON("uc-recent", []), sentReq = loadJSON("uc-sent", {});
 let incoming = [], invites = [], presence = {}, socialTab = "friends", socialOpen = null, contactState = null;
-const saveSocial = () => { store.set("uc-blocked", JSON.stringify(blocked)); store.set("uc-friends", JSON.stringify(friends)); store.set("uc-recent", JSON.stringify(recent.slice(0, 40))); store.set("uc-sent", JSON.stringify(sentReq)); };
+const saveSocial = () => { store.set("uc-blocked", JSON.stringify(blocked)); store.set("uc-friends", JSON.stringify(friends)); store.set("uc-recent", JSON.stringify(recent.slice(0, 40))); store.set("uc-sent", JSON.stringify(sentReq)); cloudSoon(); };
 const meProfile = () => { const me = S && S.players.find((p) => p.id === S.you); const w = whoAmI(); return { name: (me && me.named && me.name) || w.name || "Player", avatar: me ? me.avatar : (w.avatar || 0) }; };
 const onlineFriends = () => Object.keys(friends).filter((id) => presence[id]?.online).length;
 function friendsBtn() {
@@ -1165,7 +1175,18 @@ function renderSocial() {
   const box = $("#socialM");
   if (!socialOpen) { box.innerHTML = ""; return; }
   const X = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>';
-  if (socialOpen === "contact") {
+  if (socialOpen === "profile" && account) {
+    const p = account.profile || {}, w = whoAmI(), g = p.games || 0;
+    const rate = g ? Math.round(((p.wins || 0) / g) * 100) + "%" : "—";
+    box.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-labelledby="pfH"><div class="card namecard socialcard">
+      <button class="sm ghost iconbtn namex" type="button" data-sx aria-label="Close">${X}</button>
+      <div class="pfhead">${avatarEl(w.avatar ?? 0)}<div><h2 id="pfH">${esc(w.name || "Your profile")}</h2><span class="muted small">${esc(account.email)}</span></div></div>
+      <div class="pfstats"><div><b>${g}</b><span>Games</span></div><div><b>${p.wins || 0}</b><span>Wins</span></div><div><b>${rate}</b><span>Win rate</span></div><div><b>${p.und_wins || 0}/${p.und_games || 0}</b><span>Undercover wins</span></div></div>
+      <p class="muted small" style="margin:14px 0 0">Your name, look, friends and blocked list are saved to your Google account, so they follow you to any device.</p>
+      <button type="button" class="ghost" id="signOut" style="margin-top:16px">Sign out</button>
+    </div></div>`;
+    $("#signOut").onclick = signOut;
+  } else if (socialOpen === "contact") {
     box.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-labelledby="ctH"><div class="card namecard socialcard">
       <button class="sm ghost iconbtn namex" type="button" data-sx aria-label="Close">${X}</button>
       <h2 id="ctH">Contact us</h2>
@@ -1225,6 +1246,87 @@ function renderSocial() {
 const blockedId = (pid) => { const p = S && S.players.find((x) => x.id === pid); return !!(p && p.pub && blocked[p.pub]); };
 const ago = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? "just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; };
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && socialOpen) { socialOpen = null; renderSocial(); } });
+
+/* ---------- accounts: optional Google sign-in (Supabase) ---------- */
+// Playing never needs an account. Signing in keeps your name, look, friends, blocked list and
+// game record in your account, so they follow you to any device. Turned on only when the server
+// has SUPABASE_URL and SUPABASE_ANON_KEY set; otherwise these buttons don't appear.
+let SB = null, account = null, lastSession = null, cloudT = null;
+const G_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="#4285F4" d="M22.6 12.3c0-.8-.1-1.5-.2-2.2H12v4.2h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.3-4.8 3.3-8z"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.6-2.7c-1 .7-2.2 1.1-3.7 1.1-2.9 0-5.3-1.9-6.2-4.5H2.1v2.8A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.8 14.2a6.6 6.6 0 0 1 0-4.3V7.1H2.1a11 11 0 0 0 0 9.9z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3 .6 4.2 1.6l3.1-3.1A11 11 0 0 0 2.1 7.1l3.7 2.8C6.7 7.3 9.1 5.4 12 5.4z"/></svg>';
+function accountBtn() {
+  if (!SB) return "";
+  if (!account) return `<button class="sm ghost acbtn" data-signin type="button">${G_ICON}<span class="lbl">Sign in</span></button>`;
+  const w = whoAmI();
+  return `<button class="sm ghost acbtn" data-profile type="button" aria-label="Your profile">${avatarEl(w.avatar ?? 0, "xs")}<span class="lbl">${esc(w.name || "Profile")}</span></button>`;
+}
+function loadScript(src) { return new Promise((ok, no) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = no; document.head.appendChild(s); }); }
+async function initAccounts() {
+  let cfg; try { cfg = await (await fetch("api/config")).json(); } catch { return; }
+  if (!cfg || !cfg.supabaseUrl || !cfg.supabaseKey) return;
+  try { await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"); } catch { return; }
+  SB = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseKey);
+  const { data } = await SB.auth.getSession();
+  await onSession(data.session);
+  SB.auth.onAuthStateChange((_e, session) => { setTimeout(() => onSession(session), 0); });
+  render();
+}
+async function onSession(session) {
+  lastSession = session || null;
+  const uid = session?.user?.id || null;
+  if (socket.connected) socket.emit("hello", { token, access: session?.access_token });
+  if ((account && account.id) === uid) return;
+  if (!uid) { account = null; render(); renderSocial(); return; }
+  account = { id: uid, email: session.user.email || "", profile: null };
+  try { await pullProfile(true); await pullLists(); } catch (e) { console.error(e); }
+  if (location.hash.includes("access_token")) try { history.replaceState(null, "", location.pathname); } catch {}
+  render(); renderSocial();
+}
+async function pullProfile(first) {
+  if (!SB || !account) return;
+  const { data: prof } = await SB.from("profiles").select("*").eq("id", account.id).maybeSingle();
+  if (prof) {
+    account.profile = prof;
+    if (first) { if (prof.name) store.set("uc-myname", prof.name); if (prof.avatar != null) store.set("uc-avatar", String(prof.avatar)); }
+  } else {
+    const w = whoAmI(), row = { id: account.id, name: w.name || null, avatar: w.avatar ?? 0 };
+    await SB.from("profiles").insert(row);
+    account.profile = { ...row, games: 0, wins: 0, und_games: 0, und_wins: 0 };
+  }
+  renderSocial();
+}
+async function pullLists() { // merge what's in the account with what's in this browser
+  const [{ data: fr }, { data: bl }] = await Promise.all([
+    SB.from("friends").select("pub,name,avatar").eq("user_id", account.id),
+    SB.from("blocked").select("pub,name,avatar,created_at").eq("user_id", account.id),
+  ]);
+  for (const r of fr || []) if (!friends[r.pub]) friends[r.pub] = { name: r.name, avatar: r.avatar };
+  for (const r of bl || []) if (!blocked[r.pub]) blocked[r.pub] = { name: r.name, avatar: r.avatar, t: Date.parse(r.created_at) || Date.now() };
+  for (const id of Object.keys(blocked)) delete friends[id];
+  saveSocial(); refreshPresence();
+}
+function cloudSoon() { if (!SB || !account) return; clearTimeout(cloudT); cloudT = setTimeout(cloudPush, 800); }
+async function cloudPush() {
+  if (!SB || !account) return;
+  const uid = account.id;
+  for (const [table, list] of [["friends", friends], ["blocked", blocked]]) {
+    const rows = Object.entries(list).map(([pub, x]) => ({ user_id: uid, pub, name: x.name, avatar: x.avatar ?? 0 }));
+    if (rows.length) await SB.from(table).upsert(rows);
+    let del = SB.from(table).delete().eq("user_id", uid);
+    if (rows.length) del = del.not("pub", "in", `(${rows.map((r) => `"${r.pub}"`).join(",")})`);
+    await del;
+  }
+}
+function saveProfile(patch) {
+  if (!SB || !account) return;
+  account.profile = { ...(account.profile || {}), ...patch };
+  SB.from("profiles").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", account.id).then(() => {}, () => {});
+}
+function signIn() {
+  if (!SB) return;
+  SB.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } });
+}
+async function signOut() { if (SB) await SB.auth.signOut(); socialOpen = null; renderSocial(); }
+initAccounts();
 
 /* ---------- chat: a small dock in the corner, closed by default ---------- */
 let chatOpen = false, chatSeen = 0, chatPeek = null;
@@ -1298,19 +1400,28 @@ function playerTable() {
   const g = S.game, cur = g.phase === "clue" ? g.turnOrder[g.turnIdx] : null;
   const voting = g.phase === "vote" && g.alive.includes(S.you);
   const roleName = (r) => (r === "und" ? "Undercover" : r === "white" ? "Mr. White" : "Civilian");
-  const inGame = S.players.filter((p) => p.inGame).sort((a, b) => g.alive.includes(b.id) - g.alive.includes(a.id));
+  // Listed in this round's speaking order (top to bottom), with each player's turn number; players who are out go last.
+  const pos = (id) => { const i = (g.turnOrder || []).indexOf(id); return i < 0 ? 999 : i; };
+  const inGame = S.players.filter((p) => p.inGame).sort((a, b) => (g.alive.includes(b.id) - g.alive.includes(a.id)) || (pos(a.id) - pos(b.id)));
   const rows = inGame.map((p) => {
     const out = !g.alive.includes(p.id);
     const mineClues = g.clues.filter((c) => c.id === p.id).sort((x, y) => x.round - y.round);
     const latest = mineClues[mineClues.length - 1];
     const typing = p.id === cur;
+    const turnNo = !out && pos(p.id) < 999 ? pos(p.id) + 1 : null;
+    const done = turnNo && g.phase === "clue" && pos(p.id) < g.turnIdx;
     const fresh = latest && !seenClue.has(S.gameNo + ":" + latest.round + ":" + p.id);
     if (latest) seenClue.add(S.gameNo + ":" + latest.round + ":" + p.id);
-    const big = typing ? '<span class="typing">typing<i>.</i><i>.</i><i>.</i></span>' : latest ? `<span class="${fresh ? "pop" : ""}">${latest.word ? esc(latest.word) : '<span class="pass">no clue</span>'}</span>` : '<span class="pass">—</span>';
-    const earlier = (typing ? mineClues : mineClues.slice(0, -1)).map((c) => (c.word ? esc(c.word) : "—"));
+    // Big text = this round's clue; clues from earlier rounds go in the "Earlier" line.
+    const now = mineClues.find((c) => c.round === g.round);
+    const big = typing ? '<span class="typing">typing<i>.</i><i>.</i><i>.</i></span>'
+      : now ? `<span class="${fresh ? "pop" : ""}">${now.word ? esc(now.word) : '<span class="pass">no clue</span>'}</span>`
+      : out ? '<span class="pass">—</span>' : '<span class="pass">waiting for turn</span>';
+    const earlier = mineClues.filter((c) => c.round !== g.round).map((c) => (c.word ? esc(c.word) : "—"));
     const canVote = voting && g.targets.includes(p.id), mine = g.myVote === p.id;
     return `<li class="pcard ${out ? "out" : ""} ${typing ? "cur" : ""} ${mine ? "picked" : ""}">
       <div class="ptop">
+        ${turnNo ? `<span class="turnno ${typing ? "now" : done ? "done" : ""}" title="Speaks ${turnNo}${["st", "nd", "rd"][turnNo - 1] || "th"} this round">${turnNo}</span>` : '<span class="turnno blank"></span>'}
         ${out ? `<span class="avatar rlav">${roleLogo(g.outRoles?.[p.id] || "civ")}</span>` : (p.id === S.you ? `<button type="button" class="avbtn" id="myAv" aria-label="Change your look" title="Change your look">${avatarEl(p.avatar)}</button>` : avatarEl(p.avatar))}
         <div class="pinfo">
           <div class="pname"><b>${esc(p.name)}</b>${p.id === S.you ? '<span class="tag you">You</span>' : ""}${p.bot ? '<span class="tag ai">AI</span>' : ""}${!p.bot && !p.connected ? '<span class="tag off">Offline</span>' : ""}${typing ? '<span class="tag turn">Speaking</span>' : ""}${out ? `<span class="tag out">Out · ${roleName(g.outRoles?.[p.id])}</span>` : ""}</div>
@@ -1344,8 +1455,8 @@ function cluePhase() {
     <div class="turn"><div><div class="muted small" style="font-weight:800">${mine ? "Your turn" : "Now giving a clue"}</div><div class="who">${mine ? "You!" : esc(nameOf(cur))}</div>
     ${offline && !mine ? '<div class="muted small" style="font-weight:700">Offline — skipping soon</div>' : ""}</div>
     ${clock(g.endsAt, offline && !mine ? 8 : S.times.clue, mine)}</div>
-    ${mine ? `<form class="cluein" id="clueF" autocomplete="off"><input type="text" id="clue" maxlength="24" enterkeyhint="send" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" value="${esc(draft)}" aria-label="Your one-word clue"><button class="lime" type="submit">Send</button></form>
-      ${clueErr ? `<div class="err" role="alert">${esc(clueErr)}</div>` : '<p class="muted hint">One word. Not your word, not part of it, not a clue already used.</p>'}` : ""}
+    ${mine ? `<form class="cluein" id="clueF" autocomplete="off"><input type="text" id="clue" maxlength="20" enterkeyhint="send" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" value="${esc(draft)}" aria-label="Your clue"><button class="lime" type="submit">Send</button></form>
+      ${clueErr ? `<div class="err" role="alert">${esc(clueErr)}</div>` : '<p class="muted hint">Up to 20 characters. Not your word, not part of it, not a clue already used.</p>'}` : ""}
   </div>`;
 }
 
@@ -1484,7 +1595,6 @@ const bind = {
     f.onsubmit = (e) => {
       e.preventDefault();
       const v = inp.value.trim();
-      if (/\s/.test(v)) { clueErr = "One word only — no spaces."; draft = v; return render(); }
       socket.emit("clue", v, (res) => { if (res && res.error) { clueErr = res.error; draft = v; render(); } });
     };
   },

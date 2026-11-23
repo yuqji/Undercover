@@ -48,15 +48,21 @@ function revealsWord(clue, word) {
   return false;
 }
 
+// A clue can be a word or a short phrase, up to CLUE_MAX characters.
+const CLUE_MAX = 20;
 function checkClue(raw, myWord, usedClues = []) {
-  const word = String(raw ?? "").trim();
+  const word = String(raw ?? "").trim().replace(/\s+/g, " ");
   if (!word) return { error: "Type a clue first." };
-  if (/\s/.test(word)) return { error: "One word only — no spaces." };
-  if ([...word].length > 20) return { error: "Keep it to one word under 20 letters." };
-  if (!/^[\p{L}\p{N}'’-]+$/u.test(word)) return { error: "Letters only, please — no symbols or emoji." };
+  if ([...word].length > CLUE_MAX) return { error: `Keep it to ${CLUE_MAX} characters or fewer.` };
+  if (!/^[\p{L}\p{N}'’ -]+$/u.test(word)) return { error: "Letters only, please — no symbols or emoji." };
   if (!/[\p{L}\p{N}]/u.test(word)) return { error: "Type a real word." };
-  if (revealsWord(word, myWord)) return { error: "That gives away your word — try a different clue." };
-  if (usedClues.some((u) => sameWord(u, word))) return { error: "Someone already used that clue — pick another." };
+  // No word in the clue may give the secret away, and the clue as a whole can't contain it.
+  const tokens = word.split(" ");
+  const whole = norm(myWord || "");
+  if (tokens.some((t) => revealsWord(t, myWord)) || (tokens.length > 1 && whole.length >= 4 && norm(word).includes(whole)))
+    return { error: "That gives away your word — try a different clue." };
+  if (usedClues.some((u) => norm(u) === norm(word) || (tokens.length === 1 && !/\s/.test(u) && sameWord(u, word))))
+    return { error: "Someone already used that clue — pick another." };
   return { word };
 }
 
@@ -146,4 +152,4 @@ function points(win, roles, alive) {
   return out;
 }
 
-module.exports = { norm, stem, sameWord, revealsWord, chatLeaks, checkClue, checkSetup, autoUndercovers, undercoverCount, minPlayers, speakingOrder, tally, winner, points };
+module.exports = { CLUE_MAX, norm, stem, sameWord, revealsWord, chatLeaks, checkClue, checkSetup, autoUndercovers, undercoverCount, minPlayers, speakingOrder, tally, winner, points };

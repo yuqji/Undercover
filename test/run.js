@@ -18,10 +18,13 @@ ok("allows fair clues", () => {
     assert.equal(R.checkClue(clue, word).word, clue);
 });
 ok("one word only, no symbols, no repeats", () => {
-  assert.match(R.checkClue("big cat", "Tiger").error, /One word/);
+  assert.equal(R.checkClue("big  striped cat", "Tiger").word, "big striped cat");
+  assert.match(R.checkClue("a fierce tiger", "Tiger").error, /gives away/);
+  assert.match(R.checkClue("cold ice cream", "Ice cream").error, /gives away/);
   assert.match(R.checkClue("  ", "Tiger").error, /Type a clue/);
   assert.match(R.checkClue("🐯", "Tiger").error, /Letters only/);
-  assert.match(R.checkClue("a".repeat(21), "Tiger").error, /under 20/);
+  assert.match(R.checkClue("a".repeat(21), "Tiger").error, /20 characters/);
+  assert.equal(R.checkClue("a".repeat(20), "Tiger").word, "a".repeat(20));
   assert.match(R.checkClue("Stripes", "Tiger", ["stripes"]).error, /already used/);
   assert.equal(R.checkClue("don't", "Tiger").word, "don't");
   assert.equal(R.checkClue("well-known", "Tiger").word, "well-known");
@@ -198,8 +201,8 @@ async function main() {
   ok("out-of-turn clue is refused", () => assert.match(r.error, /not your turn/));
   r = await emitAck(first, "clue", G(first).me.word.split(" ")[0]);
   ok("saying your own word is refused", () => assert.match(r.error, /gives away/));
-  r = await emitAck(first, "clue", "two words");
-  ok("two words are refused", () => assert.match(r.error, /One word/));
+  r = await emitAck(first, "clue", "this clue is far too long to fit");
+  ok("a clue over 20 characters is refused", () => assert.match(r.error, /20 characters/));
   r = await emitAck(first, "clue", "alpha");
   r = await emitAck(second, "clue", "Alpha");
   ok("repeated clue is refused", () => assert.match(r.error, /already used/));
@@ -358,10 +361,10 @@ async function main() {
   const api = async () => (await fetch(url + "/api/rooms")).json();
   const before = await api();
   ok("private rooms are never listed", () => assert.ok(!before.some((r) => r.code === code)));
-  ok("there are always 3 open house rooms to join, each with one word pack", () => {
+  ok("there is always one open house room to join, with one word pack", () => {
     const house = before.filter((r) => r.house && !r.playing);
-    assert.ok(house.length >= 3);
-    assert.ok(house.every((r) => r.packs.length === 1));
+    assert.equal(house.length, 1);
+    assert.equal(house[0].packs.length, 1);
   });
   ok("empty house rooms already show a 3-minute start clock", () => assert.ok(before.filter((r) => r.house && !r.players).every((r) => r.startsIn > 0 && r.startsIn <= 180 * 1000 * 0.02)));
   {
@@ -456,6 +459,11 @@ async function main() {
   ok("lobby chat reaches everyone, nothing blocked before the game", () => assert.ok(true));
   [X, Y, Z].find((p) => p.token === X.state.ownerId).s.emit("start");
   await until(() => [X, Y, Z].every((p) => p.state.game), "xyz game");
+  {
+    await wait(50);
+    const open = [...rooms.values()].filter((r) => r.settings.visibility === "public" && (!r.game || r.game.phase === "over"));
+    ok("once the open public room starts its game, exactly one new one opens", () => assert.equal(open.length, 1));
+  }
   await wait(750);
   {
     const g = () => rooms.get(X.state.code).game;
