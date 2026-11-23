@@ -5,6 +5,7 @@ const ASSOC = require("./associations");
 
 const BOT_NAMES = ["Nova", "Pixel", "Echo", "Juno", "Orbit", "Ziggy", "Mochi", "Atlas", "Luna", "Biscuit", "Rook", "Sunny", "Comet", "Pepper", "Kiwi", "Scout"];
 
+const WHITE_SHARP = 0.25; // how often an AI Mr. White goes with its best guess
 const rand = (a) => a[Math.floor(Math.random() * a.length)];
 const shuffle = (a) => {
   a = a.slice();
@@ -122,7 +123,9 @@ function chooseVote(g, botId, targets, packs) {
   return rand(best);
 }
 
-// Mr. White's final guess: usually the top candidate, but often a near miss — like a person would.
+// Mr. White's final guess. A bot knows the whole word list, which a person doesn't, so it is held
+// back on purpose: it often mixes up the two words of the pair or lands on a near miss.
+// Tuned so an AI Mr. White guesses right roughly 1 time in 4.
 function whiteGuess(g, packs) {
   const said = g.clues.map((c) => c.word).filter(Boolean);
   const hint = g.whiteHint ? g.category : null;
@@ -131,7 +134,10 @@ function whiteGuess(g, packs) {
   const ranked = pool.flatMap((w) => [w.a, w.b])
     .map((c) => ({ c, s: said.reduce((n, cl) => n + fits(cl, c), 0) + Math.random() * 1.6 }))
     .sort((x, y) => y.s - x.s);
-  return Math.random() < 0.55 ? ranked[0].c : rand(ranked.slice(0, 4)).c;
+  const top = ranked[0].c, r = Math.random();
+  if (r < WHITE_SHARP) return top;
+  if (r < WHITE_SHARP + 0.3) return partnerOf(top) || rand(ranked.slice(1, 6)).c; // confuses the two words
+  return rand(ranked.slice(1, 8)).c;
 }
 
 module.exports = { botName, clueFor, smartClue, whiteClue, chooseVote, whiteGuess, fits, assocOf, partnerOf };

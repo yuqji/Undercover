@@ -677,7 +677,7 @@ function view(room, pid) {
     me: !myRole ? { spectator: true } : myRole === "white" ? { white: true, hint: g.whiteHint ? g.hintWord : null } : { word: g.words[myRole] },
     reveal: g.phase === "over" ? { roles: g.roles, words: g.words, category: g.category } : null,
     whiteId: g.phase === "whiteguess" ? g.lastResult.id : null,
-    left: Object.keys(g.left || {}),
+    leftIds: Object.keys(g.left || {}),
   };
   return v;
 }

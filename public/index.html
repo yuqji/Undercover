@@ -190,12 +190,13 @@ h1,h2,.disp,.idcard .w,.who,.lobbycode .big,.count,.clock,.clues li b,.words b,.
 .pcard{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--card)}
 .pcard.cur{border-color:var(--pink);box-shadow:0 0 0 2px #dbe6ff}
 .pcard.picked{border-color:var(--pink);box-shadow:inset 4px 0 0 var(--pink)}
-.pcard.out{--oc:#2563eb;--ob:#eef3ff;border-color:var(--oc);background:var(--ob);box-shadow:inset 4px 0 0 var(--oc)}
-.pcard.out.o-und{--oc:#dc2626;--ob:#fdeeee}
-.pcard.out.o-white{--oc:#d97706;--ob:#fff5e1}
+.pcard.out{--oc:#2563eb;border-color:var(--line);background:#ececea;box-shadow:inset 4px 0 0 var(--oc)}
+.pcard.out.o-und{--oc:#dc2626}
+.pcard.out.o-white{--oc:#d97706}
 .pcard.out .tag.out{background:var(--oc);color:#fff}
-.pcard.out .pname b{color:var(--ink)}
-.pcard.out .outav{display:inline-flex;border-radius:50%;box-shadow:0 0 0 3px var(--oc)}
+.pcard.out .pname b,.pcard.out .pword,.pcard.out .earlier,.pcard.out .tag.ai{opacity:.45}
+.pcard.out .earlier{background:#e4e4e1}
+.pcard.out .outav{display:inline-flex;border-radius:50%;box-shadow:0 0 0 3px var(--oc)}.pcard.out .outav .avatar{filter:grayscale(1);opacity:.55}
 .ptop{display:flex;align-items:center;gap:14px;padding:14px 16px}
 .avatar{flex:none;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:20px}
 .pinfo{flex:1}
@@ -518,6 +519,28 @@ button:active{transform:scale(.96)}
 .ctysel{width:100%;padding:11px 12px;border:2px solid var(--line);border-radius:12px;font:inherit;font-weight:600;background:var(--card);color:var(--ink);margin-bottom:12px}
 .ctysel:focus{border-color:var(--pink);outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.22)}
 button.danger{background:#dc2626;color:#fff;border-color:#dc2626}
+
+/* Phones: give names and clues room instead of squeezing them into a narrow column */
+.linkbtn,.brole,.bc,.tag{white-space:nowrap}
+@media (max-width:600px){
+  .plist:not(.rooms) li{gap:8px}
+  .plist:not(.rooms) .nm{flex:1 1 0;overflow-wrap:normal;word-break:normal;min-width:0}
+  .plist:not(.rooms) li .tag{font-size:12px;padding:3px 8px}
+  .plist:not(.rooms) li button.sm{padding:6px 10px;font-size:13px;min-height:32px}
+  .board li{display:grid;grid-template-columns:24px 40px minmax(0,1fr) auto;column-gap:10px;row-gap:6px;align-items:center;padding:10px}
+  .board .nm{display:contents}
+  .board .rk{grid-column:1;grid-row:1;margin:0}
+  .board li>.avatar{grid-column:2;grid-row:1;width:40px;height:40px}
+  .board .nmt{grid-column:3;grid-row:1;white-space:normal;overflow:visible;line-height:1.25}
+  .board .pts{grid-column:4;grid-row:1;margin:0;text-align:right}
+  .board .pts b{font-size:20px}.board li.lead .pts b{font-size:22px}
+  .board .bclues{grid-column:2/4;grid-row:2;margin:0}
+  .board .gain{grid-column:4;grid-row:2;margin:0;justify-self:end;align-self:start}
+  .brole{margin-left:6px}
+  .ptop{gap:10px;padding:12px}
+  .pword{font-size:20px;overflow-wrap:normal;word-break:normal}
+  .votebtn{min-height:40px;padding:6px 14px;font-size:15px}
+}
 </style>
 </head>
 <body>
@@ -1578,7 +1601,7 @@ function playerTable() {
         ${turnNo ? `<span class="turnno ${typing ? "now" : done ? "done" : ""}" title="Speaks ${turnNo}${["st", "nd", "rd"][turnNo - 1] || "th"} this round">${turnNo}</span>` : '<span class="turnno blank"></span>'}
         ${out ? `<span class="outav">${avatarEl(p.avatar)}</span>` : (p.id === S.you ? `<button type="button" class="avbtn" id="myAv" aria-label="Change your look" title="Change your look">${avatarEl(p.avatar)}</button>` : avatarEl(p.avatar))}
         <div class="pinfo">
-          <div class="pname"><b>${esc(p.name)}</b>${flagEl(p.country)}${p.id === S.you ? '<span class="tag you">You</span>' : ""}${p.bot ? '<span class="tag ai">AI</span>' : ""}${!p.bot && !p.connected ? '<span class="tag off">Offline</span>' : ""}${typing ? '<span class="tag turn">Speaking</span>' : ""}${out ? `<span class="tag out">${(g.left || []).includes(p.id) ? "Left" : "Out"} · ${roleName(g.outRoles?.[p.id])}</span>` : ""}</div>
+          <div class="pname"><b>${esc(p.name)}</b>${flagEl(p.country)}${p.id === S.you ? '<span class="tag you">You</span>' : ""}${p.bot ? '<span class="tag ai">AI</span>' : ""}${!p.bot && !p.connected ? '<span class="tag off">Offline</span>' : ""}${typing ? '<span class="tag turn">Speaking</span>' : ""}${out ? `<span class="tag out">${(g.leftIds || []).includes(p.id) ? "Left" : "Out"} · ${roleName(g.outRoles?.[p.id])}</span>` : ""}</div>
           <div class="pword">${big}</div>
         </div>
         ${canVote ? `<button class="votebtn" data-t="${esc(p.id)}" aria-pressed="${mine}" aria-label="${mine ? "Take back your vote for" : "Vote out"} ${esc(p.name)}">${mine ? "Voted ✓" : "Vote"}</button>` : ""}
