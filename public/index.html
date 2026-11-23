@@ -501,6 +501,17 @@ button:active{transform:scale(.96)}
 .brand{display:flex;align-items:center;gap:12px}.logo{width:44px;height:44px;border-radius:11px;flex:none}.logo.sm{width:26px;height:26px;border-radius:7px;vertical-align:-7px;margin-right:10px}
 .timesup{margin-top:14px;padding:14px 16px;border-radius:14px;background:#fdecec;color:#c0392b;font-weight:800;text-align:center}
 .invfr .turn{margin-bottom:6px}.invfr .frlist{margin:0}.frlist li.offf{opacity:.6}
+.mention{color:var(--pink);font-weight:800}.mention.me{background:#dbe6ff;border-radius:6px;padding:0 4px}
+.cmsg.atme{background:#eef3ff;border-radius:10px;padding:6px;margin:0 -6px;box-shadow:inset 3px 0 0 var(--pink)}
+.mentlist[hidden]{display:none!important}.frlist li.empty{display:block}
+.mentlist{display:flex;flex-direction:column;gap:2px;border:1px solid var(--line);border-radius:12px;padding:4px;background:var(--card);max-height:200px;overflow:auto}
+.mentlist button{display:flex;align-items:center;gap:8px;background:none;border:0;border-radius:8px;padding:6px 8px;font:inherit;font-weight:700;color:var(--ink);text-align:left;cursor:pointer;box-shadow:none;min-height:0}
+.mentlist button.on,.mentlist button:hover{background:#eef3ff}
+.atyou{display:inline-block;margin-left:6px;background:var(--pink);color:#fff;border-radius:999px;padding:0 7px;font-size:12px}
+.flag{margin-left:6px;font-size:1.05em;line-height:1;vertical-align:-1px;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+.ctyrow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0 8px;font-weight:700}
+.ctysel{width:100%;padding:11px 12px;border:2px solid var(--line);border-radius:12px;font:inherit;font-weight:600;background:var(--card);color:var(--ink);margin-bottom:12px}
+.ctysel:focus{border-color:var(--pink);outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.22)}
 </style>
 </head>
 <body>
@@ -605,7 +616,33 @@ function avatarSVG(i) {
 const avatarEl = (i, cls = "") => `<span class="avatar emo ${cls}">${avatarSVG(i || 0)}</span>`;
 function whoAmI() {
   const a = parseInt(store.get("uc-avatar"), 10);
-  return { name: store.get("uc-myname") || "", avatar: a >= 0 && a < AVATARS.length ? a : undefined };
+  return { name: store.get("uc-myname") || "", avatar: a >= 0 && a < AVATARS.length ? a : undefined, country: shownCountry() };
+}
+// Country flag next to your name. Guessed from your location once; you can change it or hide it.
+const COUNTRIES = "AD AE AF AG AI AL AM AO AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GT GU GW GY HK HN HR HT HU ID IE IL IM IN IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG US UY UZ VA VC VE VG VI VN VU WF WS XK YE YT ZA ZM ZW".split(" ");
+let regionNames = null; try { regionNames = new Intl.DisplayNames(["en"], { type: "region" }); } catch {}
+const countryName = (c) => { try { return (regionNames && regionNames.of(c)) || c; } catch { return c; } };
+const flagOf = (c) => (c && /^[A-Z]{2}$/.test(c) ? String.fromCodePoint(...[...c].map((x) => 0x1f1a5 + x.charCodeAt(0))) : "");
+const flagEl = (c) => (c ? `<span class="flag" title="${esc(countryName(c))}" aria-label="${esc(countryName(c))}">${flagOf(c)}</span>` : "");
+const myCountry = () => store.get("uc-country") || "";
+const showCountry = () => store.get("uc-showcountry") !== "off";
+const shownCountry = () => (showCountry() && myCountry()) || null;
+function setCountry(code, show) {
+  if (code !== undefined) store.set("uc-country", code || "");
+  if (show !== undefined) store.set("uc-showcountry", show ? "on" : "off");
+  if (S) socket.emit("country", shownCountry());
+}
+if (!store.get("uc-country")) fetch("/api/geo").then((r) => r.json()).then((j) => { if (j && j.country && !store.get("uc-country")) { setCountry(j.country); render(); } }).catch(() => {});
+function countryRow() {
+  const c = myCountry(), on = showCountry();
+  const opts = COUNTRIES.map((k) => [k, countryName(k)]).sort((a, b) => a[1].localeCompare(b[1]))
+    .map(([k, n]) => `<option value="${k}" ${k === c ? "selected" : ""}>${flagOf(k)} ${esc(n)}</option>`).join("");
+  return `<div class="ctyrow"><span class="sl">Show my country</span><button type="button" class="switch" id="ctySw" role="switch" aria-checked="${on}" aria-label="Show my country"><i></i></button></div>
+    ${on ? `<select id="ctySel" class="ctysel" aria-label="Country"><option value="" ${c ? "" : "selected"}>Choose a country…</option>${opts}</select>` : ""}`;
+}
+function bindCountry() {
+  const sw = $("#ctySw"); if (sw) sw.onclick = () => { setCountry(undefined, !showCountry()); render(); };
+  const sel = $("#ctySel"); if (sel) sel.onchange = () => { setCountry(sel.value); render(); };
 }
 const socket = io({ transports: ["websocket", "polling"] });
 socket.on("connect", () => {
@@ -793,7 +830,7 @@ function room() {
   </div>
   <div class="card">
     <h2>Players · ${n}</h2>
-    <ul class="plist">${S.players.map((p) => `<li>${p.id === S.you && !needName ? `<button type="button" class="avbtn" id="myAv" aria-label="Change your look" title="Change your look">${avatarEl(p.avatar, "sm")}</button>` : avatarEl(p.avatar, "sm")}<span class="nm">${esc(p.name)}${p.id === S.you ? ` (you) ${p.named && !needName ? '<button class="linkbtn" id="editName" type="button">Edit</button>' : ""}` : p.pub ? friendLink(p) + `<button class="linkbtn blk" type="button" data-block="${esc(p.pub)}">Block</button>` : ""}</span>
+    <ul class="plist">${S.players.map((p) => `<li>${p.id === S.you && !needName ? `<button type="button" class="avbtn" id="myAv" aria-label="Change your look" title="Change your look">${avatarEl(p.avatar, "sm")}</button>` : avatarEl(p.avatar, "sm")}<span class="nm">${esc(p.name)}${flagEl(p.country)}${p.id === S.you ? ` (you) ${p.named && !needName ? '<button class="linkbtn" id="editName" type="button">Edit</button>' : ""}` : p.pub ? friendLink(p) + `<button class="linkbtn blk" type="button" data-block="${esc(p.pub)}">Block</button>` : ""}</span>
       ${p.bot ? '<span class="tag ai">AI</span>' : p.connected ? "" : '<span class="tag off">Offline</span>'}
       <span class="tag">${p.score} ${p.score === 1 ? "point" : "points"}</span>
       ${owner && p.id !== S.you ? `<button class="sm ghost" data-kick="${esc(p.id)}" aria-label="Remove ${esc(p.name)}">Remove</button>` : ""}</li>`).join("")}</ul>
@@ -968,10 +1005,12 @@ function lookCard(me) {
     <button class="sm ghost iconbtn namex" type="button" id="lookX" aria-label="Close"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>
     <h2 id="lookH">Change your look</h2>
     <div class="avpick" role="radiogroup" aria-label="Avatar">${AVATARS.map((a, i) => `<button type="button" role="radio" class="avopt" data-look="${i}" aria-checked="${i === (me.avatar || 0)}" aria-label="${a[0]}" title="${a[0]}">${avatarSVG(i)}</button>`).join("")}</div>
+    ${countryRow()}
   </div></div>`;
 }
 let lookOpen = false;
 function bindLook() {
+  bindCountry();
   const m = $("#myAv"); if (m) m.onclick = () => { if (S.game && S.game.phase !== "over") lookOpen = true; else { editingName = true; nameErr = ""; nameDraft = null; avDraft = null; } render(); };
   const x = $("#lookX"); if (x) x.onclick = () => { lookOpen = false; render(); };
   app.querySelectorAll("[data-look]").forEach((b) => (b.onclick = () => { const a = +b.dataset.look; store.set("uc-avatar", String(a)); socket.emit("avatar", a); saveProfile({ avatar: a }); lookOpen = false; render(); }));
@@ -982,12 +1021,14 @@ function nameCard(me) {
     <button class="sm ghost iconbtn namex" type="button" id="${first ? "nameLeave" : "cancelName"}" aria-label="${first ? "Leave room" : "Close"}" title="${first ? "Leave room" : "Close"}"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>
     <h2 id="nameH">${first ? "Pick a look and a name" : "Change your look and name"}</h2>
     <div class="avpick" role="radiogroup" aria-label="Avatar">${AVATARS.map((e, i) => `<button type="button" role="radio" class="avopt" data-av="${i}" aria-checked="${i === curAv(me)}" aria-label="${e[0]}" title="${e[0]}">${avatarSVG(i)}</button>`).join("")}</div>
+    ${countryRow()}
     <form class="cluein" id="nameF" autocomplete="off"><input type="text" id="nameIn" maxlength="25" aria-label="Your name" autocomplete="off" autocorrect="off" spellcheck="false" value="${esc(nameDraft != null ? nameDraft : first ? "" : me.name)}"><button type="submit" class="lime">${first ? "Join the table" : "Save"}</button></form>
     ${nameErr ? `<div class="err" role="alert">${esc(nameErr)}</div>` : ""}
     <div class="row namefoot"><button class="sm ghost" type="button" id="randName">Pick a random name</button><span class="muted small" id="nameCount">0/25</span></div>
   </div></div>`;
 }
 function bindName() {
+  bindCountry();
   const f = $("#nameF");
   const e = $("#editName"); if (e) e.onclick = () => { editingName = true; nameErr = ""; nameDraft = null; avDraft = null; render(); $("#nameIn")?.select(); };
   if (!f) return;
@@ -1371,21 +1412,43 @@ async function signOut() { if (SB) await SB.auth.signOut(); socialOpen = null; r
 initAccounts();
 
 /* ---------- chat: a small dock in the corner, closed by default ---------- */
-let chatOpen = false, chatSeen = 0, chatPeek = null;
+let chatOpen = false, chatSeen = 0, chatPeek = null, mentionSeen = 0;
+// @mentions: "@Name" of anyone in the room is highlighted; a message that @'s you is marked and pings you.
+const myName = () => (S && S.players.find((p) => p.id === S.you)?.name) || "";
+const mentionsMe = (m) => { const n = myName(); return !!n && m.id !== S.you && m.text.toLowerCase().includes("@" + n.toLowerCase()); };
+function chatHTML(text) {
+  const names = (S ? S.players.map((p) => p.name) : []).filter(Boolean).sort((a, b) => b.length - a.length);
+  let out = "", i = 0;
+  while (i < text.length) {
+    if (text[i] === "@") {
+      const rest = text.slice(i + 1).toLowerCase();
+      const hit = names.find((n) => rest.startsWith(n.toLowerCase()));
+      if (hit) { out += `<span class="mention ${hit === myName() ? "me" : ""}">@${esc(text.slice(i + 1, i + 1 + hit.length))}</span>`; i += 1 + hit.length; continue; }
+    }
+    out += esc(text[i]); i++;
+  }
+  return out;
+}
 function renderChat() {
   const dock = $("#chatDock");
   if (!S) { dock.innerHTML = ""; return; }
   const msgs = S.chat || [];
   if (chatOpen) chatSeen = msgs.length;
   const unread = Math.max(0, msgs.length - chatSeen);
+  const pings = msgs.filter((m) => !blockedId(m.id) && mentionsMe(m));
+  const newPing = pings.filter((m) => m.t > mentionSeen);
+  if (newPing.length) { if (mentionSeen) SFX.pop(); mentionSeen = newPing[newPing.length - 1].t; }
+  else if (!mentionSeen && msgs.length) mentionSeen = msgs[msgs.length - 1].t;
+  const pinged = !chatOpen && pings.some((m) => msgs.indexOf(m) >= chatSeen);
   const live = S.game && S.game.phase !== "over";
   dock.innerHTML = chatOpen ? `<div class="chatpanel" role="dialog" aria-label="Room chat">
       <div class="chathead"><b>Chat</b><button type="button" class="sm ghost iconbtn" id="chatClose" aria-label="Minimize chat" title="Minimize"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 12h12" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button></div>
       <div class="chatlog" id="chatLog" aria-live="polite">${msgs.length ? msgs.filter((m) => !blockedId(m.id)).map((m) => {
         const p = S.players.find((x) => x.id === m.id);
-        return `<p class="cmsg ${m.id === S.you ? "me" : ""}">${avatarEl(p ? p.avatar : 0, "xs")}<span><b>${esc(m.name)}${p && p.bot ? " (AI)" : ""}</b> ${esc(m.text)}</span></p>`;
+        return `<p class="cmsg ${m.id === S.you ? "me" : ""} ${mentionsMe(m) ? "atme" : ""}">${avatarEl(p ? p.avatar : 0, "xs")}<span><b>${esc(m.name)}${p && p.bot ? " (AI)" : ""}</b> ${chatHTML(m.text)}</span></p>`;
       }).join("") : '<p class="muted">No messages yet. Say hi!</p>'}</div>
-      <form class="chatform" id="chatF" autocomplete="off"><input type="text" id="chatIn" maxlength="200" aria-label="Chat message" autocomplete="off" autocorrect="off" spellcheck="false" value="${esc(chatDraft)}"><button type="submit" class="sm">Send</button></form>
+      <div class="mentlist" id="mentList" hidden></div>
+      <form class="chatform" id="chatF" autocomplete="off"><input type="text" id="chatIn" maxlength="200" aria-label="Chat message" placeholder="Message · type @ to mention" autocomplete="off" autocorrect="off" spellcheck="false" value="${esc(chatDraft)}"><button type="submit" class="sm">Send</button></form>
       ${chatErr ? `<div class="err" role="alert">${esc(chatErr)}</div>` : live ? '<p class="muted small chatnote">Secret words and anything close to them are blocked.</p>' : ""}
     </div>`
     : (() => {
@@ -1393,7 +1456,7 @@ function renderChat() {
         const fresh = last && last.t !== chatPeek; chatPeek = last ? last.t : null;
         return `<button type="button" class="chatcard ${unread ? "unread" : ""} ${fresh && unread ? "pop" : ""}" id="chatOpenBtn" aria-label="Open chat${unread ? `, ${unread} new` : ""}">
           <span class="cico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12z"/></svg>${unread ? `<span class="badge">${unread > 9 ? "9+" : unread}</span>` : ""}</span>
-          <span class="ctext"><b>Chat</b><span>${last ? `${esc(last.name)}: ${esc(last.text)}` : "No messages yet"}</span></span>
+          <span class="ctext"><b>Chat${pinged ? ' <span class="atyou">@ you</span>' : ""}</b><span>${last ? `${esc(last.name)}: ${esc(last.text)}` : "No messages yet"}</span></span>
           <span class="cup" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 15l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>`;
       })();
 }
@@ -1405,7 +1468,22 @@ function bindChat(stick) {
   const grew = (S.chat || []).length !== lastChatLen; lastChatLen = (S.chat || []).length;
   if (log && (stick || grew)) log.scrollTop = log.scrollHeight;
   const inp = $("#chatIn");
-  inp.oninput = () => { chatDraft = inp.value; if (chatErr) { chatErr = ""; const e = f.nextElementSibling; if (e && e.classList.contains("err")) e.remove(); } };
+  const ml = $("#mentList");
+  const atQuery = () => { const m = inp.value.slice(0, inp.selectionStart ?? inp.value.length).match(/(?:^|\s)@([^@]{0,25})$/); return m ? m[1] : null; };
+  const options = () => { const q = atQuery(); if (q === null) return [];
+    return S.players.filter((p) => p.id !== S.you && p.name.toLowerCase().startsWith(q.toLowerCase().trimStart())).slice(0, 6); };
+  const pick = (name) => {
+    const cur = inp.selectionStart ?? inp.value.length, before = inp.value.slice(0, cur).replace(/@([^@]{0,25})$/, "@" + name + " ");
+    inp.value = before + inp.value.slice(cur); chatDraft = inp.value; inp.focus(); inp.setSelectionRange(before.length, before.length); showMent();
+  };
+  const showMent = () => { const o = options();
+    ml.hidden = !o.length;
+    ml.innerHTML = o.map((p, k) => `<button type="button" class="${k ? "" : "on"}" data-ment="${esc(p.name)}">${avatarEl(p.avatar, "xs")}<span>${esc(p.name)}</span></button>`).join("");
+    ml.querySelectorAll("[data-ment]").forEach((b) => (b.onmousedown = (e) => { e.preventDefault(); pick(b.dataset.ment); }));
+  };
+  inp.onkeydown = (e) => { if (!ml.hidden && (e.key === "Enter" || e.key === "Tab")) { const b = ml.querySelector("[data-ment]"); if (b) { e.preventDefault(); pick(b.dataset.ment); } } else if (e.key === "Escape") ml.hidden = true; };
+  inp.onblur = () => setTimeout(() => { ml.hidden = true; }, 150);
+  inp.oninput = () => { showMent(); chatDraft = inp.value; if (chatErr) { chatErr = ""; const e = f.nextElementSibling; if (e && e.classList.contains("err")) e.remove(); } };
   f.onsubmit = (e) => {
     e.preventDefault();
     const v = inp.value.trim(); if (!v) return;
@@ -1466,7 +1544,7 @@ function playerTable() {
         ${turnNo ? `<span class="turnno ${typing ? "now" : done ? "done" : ""}" title="Speaks ${turnNo}${["st", "nd", "rd"][turnNo - 1] || "th"} this round">${turnNo}</span>` : '<span class="turnno blank"></span>'}
         ${out ? `<span class="outav">${avatarEl(p.avatar)}</span>` : (p.id === S.you ? `<button type="button" class="avbtn" id="myAv" aria-label="Change your look" title="Change your look">${avatarEl(p.avatar)}</button>` : avatarEl(p.avatar))}
         <div class="pinfo">
-          <div class="pname"><b>${esc(p.name)}</b>${p.id === S.you ? '<span class="tag you">You</span>' : ""}${p.bot ? '<span class="tag ai">AI</span>' : ""}${!p.bot && !p.connected ? '<span class="tag off">Offline</span>' : ""}${typing ? '<span class="tag turn">Speaking</span>' : ""}${out ? `<span class="tag out">Out · ${roleName(g.outRoles?.[p.id])}</span>` : ""}</div>
+          <div class="pname"><b>${esc(p.name)}</b>${flagEl(p.country)}${p.id === S.you ? '<span class="tag you">You</span>' : ""}${p.bot ? '<span class="tag ai">AI</span>' : ""}${!p.bot && !p.connected ? '<span class="tag off">Offline</span>' : ""}${typing ? '<span class="tag turn">Speaking</span>' : ""}${out ? `<span class="tag out">Out · ${roleName(g.outRoles?.[p.id])}</span>` : ""}</div>
           <div class="pword">${big}</div>
         </div>
         ${canVote ? `<button class="votebtn" data-t="${esc(p.id)}" aria-pressed="${mine}" aria-label="${mine ? "Take back your vote for" : "Vote out"} ${esc(p.name)}">${mine ? "Voted ✓" : "Vote"}</button>` : ""}
@@ -1620,7 +1698,7 @@ function overSummary() {
     <ol class="board">${ranked.map((p) => {
       const rank = ranked.findIndex((q) => q.score === p.score) + 1, top = rank === 1 && p.score > 0;
       const before = startScores[key]?.[p.id], gain = before == null ? null : p.score - before;
-      return `<li class="${top ? "lead" : ""} ${p.id === S.you ? "me" : ""}"><span class="rk">${top ? CROWN : rank}</span>${avatarEl(p.avatar, "sm")}<span class="nm">${esc(p.name)}${p.id === S.you ? ' <span class="muted">(you)</span>' : ""}</span>${gain ? `<span class="gain">+${gain}</span>` : ""}<span class="pts"><b>${p.score}</b> ${p.score === 1 ? "point" : "points"}</span></li>`;
+      return `<li class="${top ? "lead" : ""} ${p.id === S.you ? "me" : ""}"><span class="rk">${top ? CROWN : rank}</span>${avatarEl(p.avatar, "sm")}<span class="nm">${esc(p.name)}${flagEl(p.country)}${p.id === S.you ? ' <span class="muted">(you)</span>' : ""}</span>${gain ? `<span class="gain">+${gain}</span>` : ""}<span class="pts"><b>${p.score}</b> ${p.score === 1 ? "point" : "points"}</span></li>`;
     }).join("")}</ol>
   </div>
   <details><summary>All clues from this game</summary>${clueBoard("All clues")}</details>`;

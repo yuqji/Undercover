@@ -74,6 +74,23 @@ app.post("/api/contact", express.json({ limit: "16kb" }), async (req, res) => {
 // account instead of their browser, so friends follow them to any device.
 const SUPA_URL = (process.env.SUPABASE_URL || "").trim().replace(/\/+$/, "").replace(/\/rest\/v1$/, ""); // accepts the URL with or without /rest/v1/
 const SUPA_KEY = process.env.SUPABASE_ANON_KEY || "";
+// Rough country for the "show my country" flag: from the CDN header if present, otherwise a free IP lookup.
+const okCountry = (c) => typeof c === "string" && /^[A-Z]{2}$/.test(c) && c !== "XX" && c !== "T1";
+const geoCache = new Map();
+app.get("/api/geo", async (req, res) => {
+  const h = String(req.headers["cf-ipcountry"] || req.headers["x-country-code"] || "").toUpperCase();
+  if (okCountry(h)) return res.json({ country: h });
+  const ip = String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").split(",")[0].trim();
+  if (!ip || /^(127\.|10\.|192\.168\.|::1|::ffff:127\.)/.test(ip)) return res.json({ country: null });
+  if (geoCache.has(ip)) return res.json({ country: geoCache.get(ip) });
+  try {
+    const r = await fetch("https://api.country.is/" + encodeURIComponent(ip), { signal: AbortSignal.timeout(3000) });
+    const c = r.ok ? String((await r.json()).country || "").toUpperCase() : "";
+    const out = okCountry(c) ? c : null;
+    if (geoCache.size > 5000) geoCache.clear();
+    geoCache.set(ip, out); res.json({ country: out });
+  } catch { res.json({ country: null }); }
+});
 app.get("/api/config", (_req, res) => res.json({ supabaseUrl: SUPA_URL || null, supabaseKey: SUPA_KEY || null }));
 const userCache = new Map(); // access token -> { id, t }
 async function verifyUser(access) {
@@ -564,7 +581,7 @@ function scheduleDrop(room, p) {
 function view(room, pid) {
   const g = room.game;
   const players = sortedPlayers(room).map((p) => ({
-    id: p.id, pub: p.bot ? null : p.pub || pubId(p.id), name: p.name, avatar: p.avatar ?? 0, named: !!(p.named || p.bot), connected: p.connected, score: p.score, ready: p.ready, bot: !!p.bot,
+    id: p.id, pub: p.bot ? null : p.pub || pubId(p.id), name: p.name, avatar: p.avatar ?? 0, country: p.country || null, named: !!(p.named || p.bot), connected: p.connected, score: p.score, ready: p.ready, bot: !!p.bot,
     inGame: !!(g && p.id in g.roles), alive: !!(g && g.alive.includes(p.id)),
   }));
   const here = players.filter((p) => p.connected).length;
@@ -730,39 +747,39 @@ io.on("connection", (socket) => {
     let k = 2; while (nameTaken(room, `${base.slice(0, NAME_MAX - 3)} ${k}`)) k++;
     return `${base.slice(0, NAME_MAX - 3)} ${k}`;
   }
-  function seat(room, token, rawName, rawAvatar) {
+  function seat(room, token, rawName, rawAvatar, rawCountry) {
     const wanted = cleanName(rawName);
     let name = wanted ? freeName(room, wanted) : null;
     if (!name) { let k = room.players.size + 1; while (nameTaken(room, "Player " + k)) k++; name = "Player " + k; }
-    const p = { id: token, name, avatar: okAvatar(rawAvatar) ? rawAvatar : freeAvatar(room), named: !!wanted, connected: true, sockets: new Set(), score: 0, joinedAt: Date.now(), ready: false, dropTimer: null };
+    const p = { id: token, name, avatar: okAvatar(rawAvatar) ? rawAvatar : freeAvatar(room), country: okCountry(rawCountry) ? rawCountry : null, named: !!wanted, connected: true, sockets: new Set(), score: 0, joinedAt: Date.now(), ready: false, dropTimer: null };
     room.players.set(token, p);
     return p;
   }
 
   // Public or private is chosen when the room is created and stays that way.
-  socket.on("create", ({ name, avatar, token, visibility, settings } = {}) => {
+  socket.on("create", ({ name, avatar, country, token, visibility, settings } = {}) => {
     if (!token || typeof token !== "string" || token.length > 80) return fail("Refresh the page and try again.");
     const room = makeRoom(token);
     room.settings.visibility = visibility === "public" ? "public" : "private";
     if (settings && typeof settings === "object") applySettings(room, settings);
     rooms.set(room.code, room);
-    attach(room, seat(room, token, name, avatar));
+    attach(room, seat(room, token, name, avatar, country));
   });
 
-  function joinRoom(room, name, token, avatar) {
+  function joinRoom(room, name, token, avatar, country) {
     const back = room.players.get(token);
-    if (back) return attach(room, back); // reconnect: same seat, same word
+    if (back) { if (country !== undefined) back.country = okCountry(country) ? country : null; return attach(room, back); } // reconnect: same seat, same word
     if (room.players.size >= MAX_PLAYERS) return fail("This room is full (16 players).");
-    attach(room, seat(room, token, name, avatar));
+    attach(room, seat(room, token, name, avatar, country));
   }
   const badToken = (t) => !t || typeof t !== "string" || t.length > 80;
 
-  socket.on("join", ({ code, name, avatar, token } = {}) => {
+  socket.on("join", ({ code, name, avatar, country, token } = {}) => {
     code = String(code || "").toUpperCase().trim();
     const room = rooms.get(code);
     if (!room) return fail(`No room called ${code || "that"}. Check the code and try again.`);
     if (badToken(token)) return fail("Refresh the page and try again.");
-    joinRoom(room, name, token, avatar);
+    joinRoom(room, name, token, avatar, country);
   });
 
   // Quick join: the best waiting public room, or a fresh public room if there is none.
@@ -804,6 +821,14 @@ io.on("connection", (socket) => {
     const { room, p } = ctx();
     if (!room || !p || !okAvatar(a)) return;
     p.avatar = a;
+    broadcast(room);
+  });
+
+  // Show or hide your country flag (null hides it). Any time.
+  socket.on("country", (c) => {
+    const { room, p } = ctx();
+    if (!room || !p) return;
+    p.country = okCountry(c) ? c : null;
     broadcast(room);
   });
 
