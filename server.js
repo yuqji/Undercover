@@ -9,6 +9,7 @@ const crypto = require("crypto");
 const WORDS = require("./words");
 const rules = require("./rules");
 const Bots = require("./bots");
+const LLM = require("./llm"); // real AI for AI players, when ANTHROPIC_API_KEY is set
 
 const PORT = process.env.PORT || 3000;
 const T = Number(process.env.TIME_SCALE || 1); // tests speed time up; leave at 1 in production
@@ -733,20 +734,34 @@ function botTick(room) {
   const packs = room.settings.packs;
   if (g.phase === "clue") {
     const pid = g.turnOrder[g.turnIdx];
-    if (room.players.get(pid)?.bot) later("clue" + g.turnIdx, 2 + Math.random() * 4, () => {
+    if (room.players.get(pid)?.bot) later("clue" + g.turnIdx, 1.5 + Math.random() * 3, async () => {
       if (g.phase !== "clue" || g.turnOrder[g.turnIdx] !== pid) return;
       const used = g.clues.map((c) => c.word).filter(Boolean);
       const role = g.roles[pid], myWord = role === "white" ? null : g.words[role];
-      const w = role === "white" ? Bots.whiteClue(g, packs, used) : Bots.smartClue(g, pid);
-      const check = w ? rules.checkClue(w, myWord, used) : { error: "none" };
+      // Real AI first (when switched on); the word-list AI covers anything it gets wrong.
+      let check = { error: "none" };
+      if (LLM.enabled()) {
+        const w = await LLM.clue(g, pid, room.settings.lang);
+        if (room.game !== g || g.phase !== "clue" || g.turnOrder[g.turnIdx] !== pid) return;
+        if (w) check = rules.checkClue(w, myWord, used);
+        if (!check.error && role !== "white" && rules.revealsWord(check.word, g.words[role === "civ" ? "und" : "civ"])) check = { error: "names the other word" };
+      }
+      if (check.error) {
+        const w = role === "white" ? Bots.whiteClue(g, packs, used) : Bots.smartClue(g, pid);
+        check = w ? rules.checkClue(w, myWord, used) : { error: "none" };
+      }
       recordClue(room, pid, check.error ? null : check.word);
     });
   }
   if (g.phase === "vote") {
     for (const pid of g.alive) {
       if (!room.players.get(pid)?.bot) continue;
-      later((g.revote ? "revote" : "vote") + pid, 3 + Math.random() * 7, () => {
-        const t = Bots.chooseVote(g, pid, voteTargets(g, pid), packs);
+      later((g.revote ? "revote" : "vote") + pid, 3 + Math.random() * 7, async () => {
+        const targets = voteTargets(g, pid);
+        // Real AI reads the clues; a share of hunch votes keeps AI players beatable.
+        let t = LLM.enabled() && Math.random() > 0.25 ? await LLM.vote(g, pid, targets, room.settings.lang) : null;
+        if (room.game !== g || g.phase !== "vote" || !g.alive.includes(pid)) return;
+        if (!t || !voteTargets(g, pid).includes(t)) t = Bots.chooseVote(g, pid, voteTargets(g, pid), packs);
         if (t) castVote(room, pid, t);
       });
     }
