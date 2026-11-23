@@ -1059,7 +1059,8 @@ const ZH = {
   "Close": "关闭", "Seconds left": "剩余秒数", "Connection lost — reconnecting…": "连接断开 — 正在重连…",
   "That room closed while you were away. Join or start a new one!": "你离开时这个房间关闭了。加入或新开一局吧！",
   "The room owner removed you.": "房主把你移出了房间。", "Room codes are 4 letters.": "房间码是 4 个字母。", "Invite link copied": "邀请链接已复制",
-  "Link copied — paste it in an Instagram message": "链接已复制 — 去 Instagram 私信里粘贴", "Finish this game first — you're still in it.": "先玩完这局 — 你还在游戏里。",
+  "Link copied — paste it in an Instagram message": "链接已复制 — 去 Instagram 私信里粘贴",
+  "Link copied — paste it in WeChat": "链接已复制 — 打开微信粘贴发给好友", "Link copied — paste it in a Douyin message": "链接已复制 — 去抖音私信里粘贴", "Finish this game first — you're still in it.": "先玩完这局 — 你还在游戏里。",
   "Names can't contain links.": "名字里不能有链接。", "Press Cmd+C (or Ctrl+C) to copy": "按 Cmd+C（或 Ctrl+C）复制",
   "Couldn't send. Try again.": "发送失败，请重试。", "Couldn't send. Check your connection and try again.": "发送失败，请检查网络后重试。",
   "You joined mid-game": "你中途加入了", "Watching this one": "这局在观战", "Your role": "你的身份", "Clues so far": "目前的线索",
@@ -1430,24 +1431,32 @@ const SH = {
   text: ["Messages", "#34c759", '<path d="M12 4c4.97 0 9 3.36 9 7.5S16.97 19 12 19c-1 0-1.97-.13-2.87-.38L4.5 20.5l1.2-3.6C4.03 15.57 3 13.62 3 11.5 3 7.36 7.03 4 12 4z" fill="#fff"/>'],
   whatsapp: ["WhatsApp", "#25d366", '<path d="M8.6 6.8c.3-.2.7-.2.9.1l1.2 1.8c.2.3.2.7-.1 1l-.7.7c.6 1.3 1.6 2.3 2.9 2.9l.7-.7c.3-.3.7-.3 1-.1l1.8 1.2c.3.2.4.6.1.9l-.8 1c-.5.6-1.3.8-2 .5C10.9 15.1 8.9 13.1 7.9 10.4c-.3-.7-.1-1.5.5-2z" fill="#fff"/><circle cx="12" cy="12" r="8" fill="none" stroke="#fff" stroke-width="1.8"/>'],
   instagram: ["Instagram", "linear-gradient(45deg,#f9a825,#e1306c 50%,#833ab4)", '<rect x="5" y="5" width="14" height="14" rx="4.5" fill="none" stroke="#fff" stroke-width="2"/><circle cx="12" cy="12" r="3.4" fill="none" stroke="#fff" stroke-width="2"/><circle cx="16.3" cy="7.7" r="1.1" fill="#fff"/>'],
-  snapchat: ["Snapchat", "#fffc00", '<path d="M12 5c2.6 0 4.3 2 4.3 4.6v1.6l1.4-.4c.4 0 .6.5.2.7l-1.6.8c.4 1.4 1.4 2.4 2.7 2.8-.3.6-1.3.8-2.2.9l-.3 1-1.3-.2c-.9.6-1.8 1.2-3.2 1.2s-2.3-.6-3.2-1.2l-1.3.2-.3-1c-.9-.1-1.9-.3-2.2-.9 1.3-.4 2.3-1.4 2.7-2.8l-1.6-.8c-.4-.2-.2-.7.2-.7l1.4.4V9.6C7.7 7 9.4 5 12 5z" fill="#fff" stroke="#111" stroke-width="1"/>'],
   telegram: ["Telegram", "#27a5e7", '<path d="M5 11.6l12.6-5c.6-.2 1.1.2.9.9l-2.2 10.3c-.1.6-.8.8-1.2.4l-3.3-2.5-1.7 1.6c-.2.2-.5.1-.5-.2l.2-2.6 5.6-5.1c.2-.2 0-.4-.3-.2L8.2 13.4 5.1 12.4c-.6-.2-.6-.6-.1-.8z" fill="#fff"/>'],
+  tiktok: ["TikTok", "#111", '<path d="M13.5 4h2.6c.2 1.9 1.4 3.2 3.4 3.4v2.6c-1.3 0-2.5-.4-3.4-1v5.6a4.6 4.6 0 1 1-4.6-4.6c.3 0 .5 0 .8.1v2.7a2 2 0 1 0 1.2 1.8z" fill="#fff"/>'],
+  douyin: ["抖音", "#111", '<path d="M13.5 4h2.6c.2 1.9 1.4 3.2 3.4 3.4v2.6c-1.3 0-2.5-.4-3.4-1v5.6a4.6 4.6 0 1 1-4.6-4.6c.3 0 .5 0 .8.1v2.7a2 2 0 1 0 1.2 1.8z" fill="#fff"/>'],
+  wechat: ["微信", "#07c160", '<path d="M9.5 5C5.9 5 3 7.4 3 10.4c0 1.7.9 3.2 2.4 4.2l-.6 1.9 2.2-1.1c.8.2 1.6.4 2.5.4h.4a4.9 4.9 0 0 1-.2-1.3c0-3 2.8-5.4 6.3-5.4h.4C15.7 6.6 12.9 5 9.5 5z" fill="#fff"/><path d="M21 14.4c0-2.5-2.4-4.5-5.3-4.5s-5.3 2-5.3 4.5 2.4 4.5 5.3 4.5c.7 0 1.4-.1 2-.3l1.8.9-.5-1.6c1.2-.8 2-2.1 2-3.5z" fill="#fff"/>'],
+  weibo: ["微博", "#e6162d", '<path d="M10.2 18.5c-3.6 0-6.5-1.8-6.5-4.3 0-1.3.8-2.8 2.2-4.2 1.9-1.9 4.1-2.7 4.9-1.9.4.4.4 1 .2 1.7 1.6-.7 3.1-.7 3.7.2.3.4.3 1 0 1.6 1.4.4 2.4 1.3 2.4 2.5 0 2.4-3.1 4.4-6.9 4.4z" fill="#fff"/><path d="M17 5.5a4.3 4.3 0 0 1 3.7 5.5M16.6 7.6a2.2 2.2 0 0 1 1.9 2.8" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>'],
   facebook: ["Facebook", "#1877f2", '<path d="M13.2 19v-6h2l.3-2.4h-2.3V9.2c0-.7.2-1.2 1.2-1.2h1.2V5.9c-.2 0-1-.1-1.8-.1-1.8 0-3 1.1-3 3.1v1.7H8.8V13h2v6z" fill="#fff"/>'],
   x: ["X", "#111", '<path d="M6 5.5h3.2l3.2 4.5 3.7-4.5h1.8l-4.7 5.6 5.3 7.4h-3.2l-3.5-4.9-4 4.9H6l5-6z" fill="#fff"/>'],
 };
-const shareRow = (link) => `<div class="share"><span class="sharelbl">Invite your friends</span><div class="sharebtns">${Object.entries(SH).map(([k, [n, bg, ico]]) =>
+const SHARE_SET = { en: ["text", "whatsapp", "instagram", "tiktok", "telegram", "facebook", "x"], zh: ["text", "wechat", "instagram", "douyin", "weibo", "facebook", "x"] };
+const shareRow = (link) => `<div class="share"><span class="sharelbl">Invite your friends</span><div class="sharebtns">${SHARE_SET[prefLang()].map((k) => [k, SH[k]]).map(([k, [n, bg, ico]]) =>
   `<button type="button" class="shb" data-share="${k}" aria-label="Share on ${n}"><span class="shi" style="background:${bg}"><svg viewBox="0 0 24 24" aria-hidden="true">${ico}</svg></span><span class="shn">${n}</span></button>`).join("")}</div></div>`;
 function shareTo(kind) {
   const link = location.origin + "/r/" + S.code;
-  const msg = `Play Undercover with me! Room ${S.code}: ${link}`;
+  const msg = prefLang() === "zh" ? `来玩谁是卧底！房间 ${S.code}：${link}` : `Play Undercover with me! Room ${S.code}: ${link}`;
+  const short = msg.replace(link, "").replace(/[:：]\s*$/, "").trim();
   const enc = encodeURIComponent, open = (u) => window.open(u, "_blank", "noopener");
   const copy = async (note) => { try { await navigator.clipboard.writeText(msg); } catch {} toast(note); };
   if (kind === "text") location.href = `sms:${/iPhone|iPad|Mac/.test(navigator.userAgent) ? "&" : "?"}body=${enc(msg)}`;
   else if (kind === "whatsapp") open(`https://wa.me/?text=${enc(msg)}`);
-  else if (kind === "telegram") open(`https://t.me/share/url?url=${enc(link)}&text=${enc("Play Undercover with me! Room " + S.code)}`);
+  else if (kind === "telegram") open(`https://t.me/share/url?url=${enc(link)}&text=${enc(short)}`);
   else if (kind === "facebook") open(`https://www.facebook.com/sharer/sharer.php?u=${enc(link)}`);
-  else if (kind === "x") open(`https://x.com/intent/post?text=${enc("Play Undercover with me! Room " + S.code)}&url=${enc(link)}`);
-  else if (kind === "snapchat") open(`https://www.snapchat.com/share?link=${enc(link)}`);
+  else if (kind === "x") open(`https://x.com/intent/post?text=${enc(short)}&url=${enc(link)}`);
+  else if (kind === "weibo") open(`https://service.weibo.com/share/share.php?url=${enc(link)}&title=${enc(short)}`);
+  else if (kind === "wechat") { copy("Link copied — paste it in WeChat"); if (/Android|iPhone|iPad/.test(navigator.userAgent)) setTimeout(() => (location.href = "weixin://"), 400); }
+  else if (kind === "douyin") { copy("Link copied — paste it in a Douyin message"); if (/Android|iPhone|iPad/.test(navigator.userAgent)) setTimeout(() => (location.href = "snssdk1128://"), 400); }
+  else if (kind === "tiktok") { copy("Link copied — paste it in a TikTok message"); setTimeout(() => open("https://www.tiktok.com/messages"), 400); }
   else if (kind === "instagram") { copy("Link copied — paste it in an Instagram message"); setTimeout(() => open("https://www.instagram.com/direct/inbox/"), 400); }
 }
 // Lobby: your friends, with an Invite button for the ones online and not already here.
