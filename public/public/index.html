@@ -183,7 +183,12 @@ h1,h2,.disp,.idcard .w,.who,.lobbycode .big,.count,.clock,.clues li b,.words b,.
 .pcard{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--card)}
 .pcard.cur{border-color:var(--pink);box-shadow:0 0 0 2px #dbe6ff}
 .pcard.picked{border-color:var(--pink);box-shadow:inset 4px 0 0 var(--pink)}
-.pcard.out{opacity:.5}
+.pcard.out{--oc:#2563eb;--ob:#eef3ff;border-color:var(--oc);background:var(--ob);box-shadow:inset 4px 0 0 var(--oc)}
+.pcard.out.o-und{--oc:#dc2626;--ob:#fdeeee}
+.pcard.out.o-white{--oc:#d97706;--ob:#fff5e1}
+.pcard.out .tag.out{background:var(--oc);color:#fff}
+.pcard.out .pname b{color:var(--ink)}
+.pcard.out .outav{display:inline-flex;border-radius:50%;box-shadow:0 0 0 3px var(--oc)}
 .ptop{display:flex;align-items:center;gap:14px;padding:14px 16px}
 .avatar{flex:none;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:20px}
 .pinfo{flex:1}
@@ -1423,10 +1428,10 @@ function playerTable() {
       : out ? '<span class="pass">—</span>' : '<span class="pass">waiting for turn</span>';
     const earlier = mineClues.filter((c) => c.round !== g.round).map((c) => (c.word ? esc(c.word) : "Skipped"));
     const canVote = voting && g.targets.includes(p.id), mine = g.myVote === p.id;
-    return `<li class="pcard ${out ? "out" : ""} ${typing ? "cur" : ""} ${mine ? "picked" : ""}">
+    return `<li class="pcard ${out ? "out o-" + (g.outRoles?.[p.id] || "civ") : ""} ${typing ? "cur" : ""} ${mine ? "picked" : ""}">
       <div class="ptop">
         ${turnNo ? `<span class="turnno ${typing ? "now" : done ? "done" : ""}" title="Speaks ${turnNo}${["st", "nd", "rd"][turnNo - 1] || "th"} this round">${turnNo}</span>` : '<span class="turnno blank"></span>'}
-        ${out ? `<span class="avatar rlav">${roleLogo(g.outRoles?.[p.id] || "civ")}</span>` : (p.id === S.you ? `<button type="button" class="avbtn" id="myAv" aria-label="Change your look" title="Change your look">${avatarEl(p.avatar)}</button>` : avatarEl(p.avatar))}
+        ${out ? `<span class="outav">${avatarEl(p.avatar)}</span>` : (p.id === S.you ? `<button type="button" class="avbtn" id="myAv" aria-label="Change your look" title="Change your look">${avatarEl(p.avatar)}</button>` : avatarEl(p.avatar))}
         <div class="pinfo">
           <div class="pname"><b>${esc(p.name)}</b>${p.id === S.you ? '<span class="tag you">You</span>' : ""}${p.bot ? '<span class="tag ai">AI</span>' : ""}${!p.bot && !p.connected ? '<span class="tag off">Offline</span>' : ""}${typing ? '<span class="tag turn">Speaking</span>' : ""}${out ? `<span class="tag out">Out · ${roleName(g.outRoles?.[p.id])}</span>` : ""}</div>
           <div class="pword">${big}</div>
