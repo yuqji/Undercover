@@ -463,9 +463,12 @@ function startGame(room) {
   const decoys = WORDS.ALL.filter((x) => x.hint === w.hint && x.id !== w.id).sort(() => Math.random() - 0.5).slice(0, 2);
   const chatBlock = [w, ...decoys].flatMap((x) => [x.a, x.b]);
   const pair = Math.random() < 0.5 ? [w.a, w.b] : [w.b, w.a];
-  // Mr. White's hint: a word close to the Civilians' word (never either secret word or a form of it).
+  // Mr. White's hint: one general related noun or describing adjective for the Civilians' word — never either
+  // secret word or a form of it, and no names, brands, numbers or phrases that would give the word away.
   const near = Bots.assocOf(pair[0]).filter((c) => !rules.checkClue(c, pair[0], []).error && !rules.checkClue(c, pair[1], []).error);
-  const hintWord = near.length ? near[Math.floor(Math.random() * near.length)] : category;
+  const general = near.filter((c) => (rules.isCJK(c) ? c.length <= 3 : /^[a-z]+$/.test(c)));
+  const pickFrom = general.length ? general : near;
+  const hintWord = pickFrom.length ? pickFrom[Math.floor(Math.random() * pickFrom.length)] : category;
 
   const order = shuffle(ids);
   const und = rules.undercoverCount(ids.length, room.settings);

@@ -736,6 +736,14 @@ $("#rulesX").onclick = closeRules;
 $("#rulesM").onclick = (e) => { if (e.target.id === "rulesM") closeRules(); };
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeRules(); });
 
+// Toggle sound in place: only the button's icon and labels change, so nothing else on the page redraws or flashes.
+function bindSound(root) {
+  root.querySelectorAll("[data-sound]").forEach((b) => (b.onclick = () => {
+    soundOn = !soundOn; store.set("uc-sound", soundOn ? "on" : "off"); if (soundOn) SFX.pop();
+    const t = document.createElement("template"); t.innerHTML = soundBtn(); const n = t.content.firstElementChild;
+    document.querySelectorAll("[data-sound]").forEach((x) => { x.innerHTML = n.innerHTML; for (const k of ["aria-pressed", "aria-label", "title"]) { const v = n.getAttribute(k), z = prefLang() === "zh" && k !== "aria-pressed" ? zhText(v) : null; x.setAttribute(k, z ?? v); } });
+  }));
+}
 function render() {
   clearInterval(tick); tick = null;
   // Keep whatever the person is typing (and where) when someone else's move redraws the page.
@@ -753,7 +761,7 @@ function render() {
   app.querySelectorAll("[data-signin]").forEach((b) => (b.onclick = signIn));
   app.querySelectorAll("[data-profile]").forEach((b) => (b.onclick = () => openSocial("profile")));
   app.querySelectorAll("[data-contact]").forEach((b) => (b.onclick = () => openSocial("contact")));
-  app.querySelectorAll("[data-sound]").forEach((b) => (b.onclick = () => { soundOn = !soundOn; store.set("uc-sound", soundOn ? "on" : "off"); if (soundOn) SFX.pop(); render(); }));
+  bindSound(app);
   if (lookOpen && S && S.game && S.game.phase !== "over") app.insertAdjacentHTML("beforeend", lookCard(S.players.find((p) => p.id === S.you) || {}));
   else lookOpen = false;
   bindLook();
