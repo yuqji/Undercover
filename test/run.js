@@ -478,15 +478,6 @@ async function main() {
     r1 = await emitAck(civ, "chat", "who is the undercover?");
     ok("normal chat goes through to everyone", () => assert.ok(r1.ok, JSON.stringify(r1) + " words=" + JSON.stringify(g().chatBlock)));
     await until(() => [X, Y, Z].every((p) => p.state.chat.some((m) => m.text === "who is the undercover?")), "chat arrives");
-    await wait(750);
-    r1 = await emitAck(civ, "chat", "come play at funsite.com");
-    ok("chat blocks links", () => assert.match(r1.error, /Links/));
-    await wait(750);
-    r1 = await emitAck(civ, "chat", "join discord dot gg");
-    r1 = await emitAck(civ, "chat", "https://x.y");
-    ok("chat blocks http links", () => assert.match(r1.error || "", /Links|Slow/));
-    await wait(750);
-    r1 = await emitAck(civ, "chat", "x");
     r1 = await emitAck(civ, "chat", "again");
     ok("chat is rate-limited", () => assert.match(r1.error, /Slow down/));
     await wait(750);
@@ -497,6 +488,12 @@ async function main() {
     await wait(750);
     r1 = await emitAck(civ, "chat", "hmm " + dec[0].toLowerCase());
     ok("…so a blocked word doesn't prove it's the other side's", () => assert.match(r1.error, /too close/));
+    await wait(750);
+    r1 = await emitAck(civ, "chat", "come play at funsite.com");
+    ok("chat blocks links", () => assert.match(r1.error, /Links/));
+    await wait(750);
+    r1 = await emitAck(civ, "chat", "https://x.y");
+    ok("chat blocks http links", () => assert.match(r1.error || "", /Links/));
   }
 
   console.log("House rooms fill with AI");
@@ -509,11 +506,17 @@ async function main() {
     ok("as soon as a person walks into a house room, AI players fill it to 4", () => {
       assert.equal(L.state.players.length, 4); assert.equal(L.state.players.filter((p) => p.bot).length, 3);
     });
+    L.s.emit("addBot");
+    await until(() => L.state.players.length === 5, "owner adds an AI player");
+    ok("the owner can still add more AI players to a house room", () => assert.equal(L.state.players.filter((p) => p.bot).length, 4));
+    for (const b of L.state.players.filter((p) => p.bot).slice(-2)) L.s.emit("kick", b.id);
+    await until(() => L.state.players.length === 3, "owner removes 2");
+    ok("AI players the owner removes stay removed", () => assert.equal(L.state.players.filter((p) => p.bot).length, 2));
     const M = phone("Mo");
     await until(() => M.s.connected, "mo");
     M.s.emit("join", { code: hr.code, name: "Mo", token: M.token });
     await until(() => M.state && L.state.players.some((p) => p.name === "Mo"), "mo joins");
-    ok("each new person takes an AI player's seat", () => {
+    ok("a new person joining fills the room back up instead of adding more AI", () => {
       assert.equal(L.state.players.length, 4); assert.equal(L.state.players.filter((p) => p.bot).length, 2);
     });
     ok("a person in an empty house room waits at most a minute", () => assert.ok(hr.autoAt - Date.now() <= 60 * 1000 * 0.02 + 5));

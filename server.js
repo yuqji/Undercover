@@ -287,6 +287,7 @@ function resetHouseRoom(room) {
   room.game = null;
   room.ownerId = null;
   room.chat = [];
+  room.autoFilled = false; room.lastPeople = 0;
   room.settings = { undercovers: "auto", mrWhite: false, whiteHint: true, packs: randomPacks(housePacksInUse(room)), visibility: "public" };
   room.touched = Date.now();
 }
@@ -326,7 +327,7 @@ function scheduleAuto(room, secs) {
     const here = [...room.players.values()].filter((p) => p.connected);
     // House rooms never leave a person waiting: when the clock runs out, AI players fill the empty seats.
     if (room.system && here.some((p) => !p.bot)) {
-      const target = Math.min(MAX_PLAYERS, Math.max(rules.minPlayers(room.settings), HOUSE_FILL));
+      const target = Math.min(MAX_PLAYERS, rules.minPlayers(room.settings));
       while (here.length < target) here.push(addBotTo(room));
     }
     if (here.some((p) => !p.bot) && !rules.checkSetup(here.length, room.settings)) {
@@ -336,17 +337,25 @@ function scheduleAuto(room, secs) {
     broadcast(room);
   }, ms(secs));
 }
-// House rooms are never short of players: as soon as a person is in, AI players fill it up to
-// HOUSE_FILL, and each new person takes an AI player's seat. With no people left, the AI players go.
+// House rooms are never short of players: when the first person walks in, AI players fill it up to
+// HOUSE_FILL. After that the owner is in charge — AI players they remove stay removed, ones they add
+// stay — and each new person who joins takes the seat of an auto-added AI player.
+// With no people left, the AI players go and the room starts fresh.
 function balanceHouseBots(room) {
   if (!room.system || !inLobby(room)) return;
   const people = humans(room).length;
-  const bots = [...room.players.values()].filter((p) => p.bot);
-  if (!people) { for (const b of bots) room.players.delete(b.id); return; }
+  const allBots = [...room.players.values()].filter((p) => p.bot);
+  if (!people) { for (const b of allBots) room.players.delete(b.id); room.autoFilled = false; room.lastPeople = 0; return; }
   const target = Math.min(MAX_PLAYERS, Math.max(rules.minPlayers(room.settings), HOUSE_FILL));
-  let extra = room.players.size - Math.max(target, people);
-  while (extra > 0 && bots.length) { room.players.delete(bots.pop().id); extra--; }
-  while (room.players.size < target) addBotTo(room);
+  if (!room.autoFilled) {
+    room.autoFilled = true; room.lastPeople = people;
+    while (room.players.size < target) addBotTo(room);
+    return;
+  }
+  // A new person arrived: drop auto-added AI players so the room doesn't grow past the target.
+  const autos = allBots.filter((p) => !p.manual);
+  while (autos.length && room.players.size > target && people > (room.lastPeople || 0)) room.players.delete(autos.pop().id);
+  room.lastPeople = people;
 }
 function checkAutoStart(room) {
   if (!inLobby(room)) return;
@@ -836,7 +845,7 @@ io.on("connection", (socket) => {
     const back = room.players.get(token);
     if (back) { if (country !== undefined) back.country = okCountry(country) ? country : null; return attach(room, back); } // reconnect: same seat, same word
     if (room.players.size >= MAX_PLAYERS && room.system && inLobby(room)) { // a person takes an AI player's seat
-      const bot = [...room.players.values()].find((p) => p.bot); if (bot) room.players.delete(bot.id);
+      const bots = [...room.players.values()].filter((p) => p.bot), bot = bots.find((p) => !p.manual) || bots[0]; if (bot) room.players.delete(bot.id);
     }
     if (room.players.size >= MAX_PLAYERS) return fail("This room is full (16 players).");
     attach(room, seat(room, token, name, avatar, country));
@@ -925,7 +934,7 @@ io.on("connection", (socket) => {
     const { room, p } = ctx();
     if (!room || room.ownerId !== p?.id || !inLobby(room)) return;
     if (room.players.size >= MAX_PLAYERS) return fail("This room is full (16 players).");
-    addBotTo(room);
+    addBotTo(room).manual = true; // added by hand: never taken away to make room
     checkAutoStart(room);
     broadcast(room);
   });
