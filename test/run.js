@@ -490,10 +490,13 @@ async function main() {
     ok("…so a blocked word doesn't prove it's the other side's", () => assert.match(r1.error, /too close/));
     await wait(750);
     r1 = await emitAck(civ, "chat", "come play at funsite.com");
-    ok("chat blocks links", () => assert.match(r1.error, /Links/));
+    ok("chat blocks links", () => assert.match(r1.error, /links/i));
     await wait(750);
     r1 = await emitAck(civ, "chat", "https://x.y");
-    ok("chat blocks http links", () => assert.match(r1.error || "", /Links/));
+    ok("chat blocks http links", () => assert.match(r1.error || "", /links/i));
+    await wait(750);
+    r1 = await emitAck(civ, "chat", "come join https://undercover-party.onrender.com/r/ABCD");
+    ok("…but links to this game itself are fine", () => assert.ok(r1.ok));
   }
 
   console.log("House rooms fill with AI");

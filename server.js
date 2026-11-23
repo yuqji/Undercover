@@ -192,6 +192,10 @@ function freeAvatar(room) {
 const TLDS = "com|net|org|io|gg|me|co|ly|app|xyz|info|biz|us|uk|ca|cn|tv|link|site|online|club|top|shop|store|live|dev|ai|to|cc|ru|de|fr|jp|kr|in|au|nl|es|it|br|onion|page|fun|vip|win|bet|cash|money|click|lol|pro|one|world|cloud|email";
 const LINK_RE = new RegExp(`(https?:|ftp:|www\\.|:\\/\\/|\\b[a-z0-9-]+\\.(?:${TLDS})\\b|\\b[a-z0-9-]+(?:\\s*[\\(\\[]\\s*dot\\s*[\\)\\]]\\s*|\\s+dot\\s+)(?:com|net|org|gg|io)\\b)`, "i");
 const hasLink = (t) => LINK_RE.test(String(t || ""));
+// Links to this site itself (e.g. a room's invite link) are fine in chat.
+const OWN_HOSTS = (process.env.SITE_HOSTS || "undercover-party.onrender.com").split(",").map((h) => h.trim().toLowerCase()).filter(Boolean);
+const OWN_LINK_RE = new RegExp(`(?:https?:\\/\\/)?(?:www\\.)?(?:${OWN_HOSTS.map((h) => h.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})(?:\\/[^\\s]*)?`, "gi");
+const hasOutsideLink = (t) => hasLink(String(t || "").replace(OWN_LINK_RE, " "));
 const cleanName = (n) => String(n || "").replace(/[\u0000-\u001f<>]/g, "").replace(/\s+/g, " ").trim().slice(0, NAME_MAX);
 
 // The room owner's choices: undercover count, Mr. White and word packs (any mix, at least one).
@@ -970,7 +974,7 @@ io.on("connection", (socket) => {
     if (!room || !p) return reply({ error: "You're not in a room." });
     const text = String(raw ?? "").replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, CHAT_MAX);
     if (!text) return reply({ error: "Type a message first." });
-    if (hasLink(text)) return reply({ error: "Links aren't allowed in chat." });
+    if (hasOutsideLink(text)) return reply({ error: "Only links to this game are allowed in chat." });
     const now = Date.now();
     if (now - (p.lastChat || 0) < CHAT_GAP_MS) return reply({ error: "Slow down a little." });
     const g = room.game;

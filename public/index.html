@@ -549,6 +549,7 @@ button.danger{background:#dc2626;color:#fff;border-color:#dc2626}
 .shb:hover .shi{transform:scale(1.07)}.shb:focus-visible .shi{outline:3px solid rgba(37,99,235,.4);outline-offset:2px}
 .shn{font-size:12px;font-weight:800;color:var(--ink)}
 @media (max-width:600px){.shb{width:64px}.shi{width:44px;height:44px}}
+.clink{color:var(--pink);font-weight:700;text-decoration:underline;overflow-wrap:anywhere}
 </style>
 </head>
 <body>
@@ -1521,6 +1522,18 @@ let chatOpen = false, chatSeen = 0, chatPeek = null, mentionSeen = 0;
 const myName = () => (S && S.players.find((p) => p.id === S.you)?.name) || "";
 const mentionsMe = (m) => { const n = myName(); return !!n && m.id !== S.you && m.text.toLowerCase().includes("@" + n.toLowerCase()); };
 function chatHTML(text) {
+  // Links to this site (invite links) are clickable; everything else goes through @mention highlighting.
+  const host = location.host.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`(?:https?:\\/\\/)?(?:www\\.)?${host}(?:\\/[^\\s]*)?`, "gi");
+  let out = "", last = 0, m;
+  while ((m = re.exec(text))) {
+    out += mentionHTML(text.slice(last, m.index));
+    const href = /^https?:/i.test(m[0]) ? m[0] : "https://" + m[0];
+    out += `<a class="clink" href="${esc(href)}">${esc(m[0])}</a>`; last = m.index + m[0].length;
+  }
+  return out + mentionHTML(text.slice(last));
+}
+function mentionHTML(text) {
   const names = (S ? S.players.map((p) => p.name) : []).filter(Boolean).sort((a, b) => b.length - a.length);
   let out = "", i = 0;
   while (i < text.length) {
