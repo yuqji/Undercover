@@ -8,6 +8,7 @@ const DAILY_LIMIT = Number(process.env.AI_DAILY_LIMIT || 20000); // calls per da
 const TIMEOUT_MS = 7000;
 
 let day = "", used = 0;
+const stats = { ok: 0, failed: 0, lastError: null, lastOkAt: null };
 const enabled = () => !!KEY;
 
 async function ask(system, user, maxTokens = 40) {
@@ -23,11 +24,13 @@ async function ask(system, user, maxTokens = 40) {
       body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, temperature: 1, system, messages: [{ role: "user", content: user }] }),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
-    if (!r.ok) { console.warn("[ai] HTTP", r.status, (await r.text()).slice(0, 200)); return null; }
+    if (!r.ok) { stats.failed++; stats.lastError = "HTTP " + r.status; console.warn("[ai] HTTP", r.status, (await r.text()).slice(0, 200)); return null; }
     const j = await r.json();
+    stats.ok++; stats.lastOkAt = new Date().toISOString();
     return (j.content || []).map((c) => c.text || "").join("").trim() || null;
   } catch (e) {
-    console.warn("[ai]", e.name === "TimeoutError" ? "timeout" : e.message);
+    stats.failed++; stats.lastError = e.name === "TimeoutError" ? "timeout" : e.message;
+    console.warn("[ai]", stats.lastError);
     return null;
   }
 }
@@ -83,4 +86,6 @@ async function whiteGuess(g, me, lang = "en") {
   return clean(await ask(sys, user, 15));
 }
 
-module.exports = { enabled, clue, vote, whiteGuess };
+// For a quick health check at /api/ai-status (no secrets in here).
+const status = () => ({ enabled: enabled(), model: MODEL, callsToday: used, dailyLimit: DAILY_LIMIT, ...stats });
+module.exports = { enabled, status, clue, vote, whiteGuess };

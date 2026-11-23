@@ -94,6 +94,7 @@ app.get("/api/geo", async (req, res) => {
     geoCache.set(ip, out); res.json({ country: out });
   } catch { res.json({ country: null }); }
 });
+app.get("/api/ai-status", (req, res) => res.json(LLM.status()));
 app.get("/api/config", (_req, res) => res.json({ supabaseUrl: SUPA_URL || null, supabaseKey: SUPA_KEY || null }));
 const userCache = new Map(); // access token -> { id, t }
 async function verifyUser(access) {
