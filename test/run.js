@@ -114,6 +114,7 @@ ok("AI civilians usually spot an obvious undercover", () => {
 /* ---------------- integration ---------------- */
 async function main() {
   process.env.TIME_SCALE = "0.02"; // 45s clue → 0.9s, 30s vote → 0.6s, etc.
+  process.env.PUBLIC_POOL = "1"; // the old one-at-a-time behaviour; the staggered pool is checked separately
   process.env.PRIVATE_WAIT = "1000"; // keep the private-room clock out of the way; tests press Start now
   const { server, rooms } = require("../server");
   await new Promise((r) => server.listen(0, r));

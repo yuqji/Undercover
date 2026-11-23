@@ -258,17 +258,25 @@ function removePlayer(room, id) {
 // So the home page never shows an empty list, the server keeps one open public room waiting for
 // players (one random word pack). A new one is added only when no public room is left to join —
 // the open one filled up or started its game. The first person in a house room runs it.
-const PUBLIC_POOL = Number(process.env.PUBLIC_POOL ?? 1);
-function randomPacks() {
+// House rooms: the site keeps PUBLIC_POOL of its own public rooms open to join (players' own public
+// rooms don't count and have no limit), but adds them one at a time — at least HOUSE_GAP seconds apart — so their start clocks are spread out instead of all
+// starting together. When one fills up or starts its game, a replacement follows (also staggered).
+const PUBLIC_POOL = Number(process.env.PUBLIC_POOL ?? 3);
+const HOUSE_GAP = Number(process.env.HOUSE_GAP ?? 60);
+let lastHouseAt = 0, houseNext = null;
+function randomPacks(avoid = []) {
   const ids = Object.keys(WORDS.PACKS).sort(() => Math.random() - 0.5);
-  return ids.slice(0, 1); // one theme per house room
+  const fresh = ids.filter((id) => !avoid.includes(id));
+  return (fresh.length ? fresh : ids).slice(0, 1); // one theme per house room, different from the others open
 }
+const housePacksInUse = (except) => [...rooms.values()].filter((r) => r.system && r !== except).flatMap((r) => r.settings.packs);
 function makeHouseRoom() {
   const room = makeRoom(null);
   room.system = true;
   room.settings.visibility = "public";
-  room.settings.packs = randomPacks();
+  room.settings.packs = randomPacks(housePacksInUse());
   rooms.set(room.code, room);
+  lastHouseAt = Date.now();
   checkAutoStart(room);
   return room;
 }
@@ -278,18 +286,25 @@ function resetHouseRoom(room) {
   room.game = null;
   room.ownerId = null;
   room.chat = [];
-  room.settings = { undercovers: "auto", mrWhite: false, whiteHint: true, packs: randomPacks(), visibility: "public" };
+  room.settings = { undercovers: "auto", mrWhite: false, whiteHint: true, packs: randomPacks(housePacksInUse(room)), visibility: "public" };
   room.touched = Date.now();
 }
 function maintainHouseRooms() {
-  let open = publicRooms().filter((r) => inLobby(r));
+  const joinable = (r) => inLobby(r) && r.players.size < MAX_PLAYERS;
+  let open = [...rooms.values()].filter((r) => r.system && joinable(r));
   // People left and there are more empty house rooms than needed: close the extras.
-  for (const r of open.filter((x) => x.system && !x.players.size)) {
+  for (const r of open.filter((x) => !x.players.size)) {
     if (open.length <= PUBLIC_POOL) break;
     rooms.delete(r.code);
     open = open.filter((x) => x !== r);
   }
-  for (let i = open.length; i < PUBLIC_POOL; i++) makeHouseRoom();
+  if (open.length < PUBLIC_POOL) {
+    const wait = lastHouseAt + ms(HOUSE_GAP) - Date.now();
+    const made = !open.length || wait <= 0;
+    if (made) { makeHouseRoom(); open.push(null); }
+    clearTimeout(houseNext); houseNext = null;
+    if (open.length < PUBLIC_POOL) houseNext = setTimeout(maintainHouseRooms, (made ? ms(HOUSE_GAP) : wait) + 50);
+  }
   for (const r of rooms.values()) if (r.system && inLobby(r) && !r.autoTimer) checkAutoStart(r); // e.g. after a game ends
 }
 
